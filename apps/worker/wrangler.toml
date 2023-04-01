@@ -1,0 +1,27 @@
+name = "tic-api"
+type = "javascript"
+main = "./build/index.mjs"
+compatibility_date = "2023-03-26"
+account_id = "1f507c7933d231cc8051d23050bda6ab"
+
+routes = [
+	{ pattern = "tic-api.krolebord.com", custom_domain = true }
+]
+
+[miniflare]
+port=8788
+
+[build.upload]
+format = "modules"
+
+[durable_objects]
+bindings = [
+  { name = "LOBBY", class_name = "TicTacToeLobby" }
+]
+
+# Indicate that you want the ChatRoom and RateLimiter classes to be callable as Durable Objects.
+[[migrations]]
+tag = "v1" # Should be unique for each entry
+new_classes = ["TicTacToeLobby"]
+
+

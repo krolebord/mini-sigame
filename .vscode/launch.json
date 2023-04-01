@@ -1,0 +1,12 @@
+{
+  "configurations": [
+    {
+      "name": "Miniflare (pnpm)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "dev:worker"], // same script name as in package.json
+      "skipFiles": ["<node_internals>/**"],
+    }
+  ]
+}

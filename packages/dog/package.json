@@ -1,0 +1,36 @@
+{
+  "name": "@tic/dog",
+  "type": "module",
+  "version": "1.2.0",
+  "repository": "cloudflare/dog",
+  "description": "Durable Object Groups",
+  "types": "index.ts",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "node bin/build",
+    "types": "tsc --noEmit"
+  },
+  "author": {
+    "name": "Luke Edwards",
+    "email": "luke.edwards05@gmail.com",
+    "url": "https://lukeed.com"
+  },
+  "resolutions": {
+    "esbuild": "0.12.24"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "4.20230321.0",
+    "typescript": "5.0.2"
+  },
+  "keywords": [
+    "cluster",
+    "durable object",
+    "durable objects",
+    "gateway",
+    "shard"
+  ]
+}
