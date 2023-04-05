@@ -84,7 +84,7 @@ export abstract class Replica<T> implements Replica<T> {
 			this.uid,
 			async ({ server, rid, gid }) => {
 				let socket: Socket = {
-					uid: rid,
+					rid: rid,
 					send: server.send.bind(server),
 					close: server.close.bind(server),
 					broadcast: this.#broadcast.bind(this, gid, rid),

@@ -1,3 +1,5 @@
 export type Env = {
-  LOBBY: DurableObjectNamespace;
+  SIGAME_LOBBY: DurableObjectNamespace;
+	SIPACKS: R2Bucket;
+	SIGAME_KV: KVNamespace;
 };

@@ -96,7 +96,12 @@ export async function handleConnection(req: Request, uid: string, handler: Socke
 
   	(server as any).accept();
 
-		await handler({ server, rid, gid });
+		try {
+			await handler({ server, rid, gid });
+		} catch (err) {
+			console.error('ws connection handler', err);
+			server.close(1011, 'Internal Server Error');
+		}
 
 		return new Response(null, {
 			status: 101,

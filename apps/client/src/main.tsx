@@ -1,45 +1,27 @@
-import { Route, Switch } from 'wouter'
+import './index.css';
+import { Link, Route, Switch } from 'wouter'
 import { HomeRoute } from './routes/home'
-import { getStoredUsername, NewUserRoute, setStoredUsername } from './routes/new-user'
+import { getStoredUsername, NewUserRoute, setStoredUsername, useUsername } from './routes/new-user'
 import { createRoot } from 'react-dom/client';
 import { StrictMode, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { trpc } from './trpc';
-import { httpLink } from '@trpc/client';
-import superjson from 'superjson';
 import { GameRoute } from './routes/game';
-import { config } from './config';
+import { Toaster } from 'react-hot-toast';
 
-import './index.css';
 
 export function App() {
   const [queryClient] = useState(() => new QueryClient());
-  const [trpcClient] = useState(() =>
-    trpc.createClient({
-      transformer: superjson,
-      links: [
-        httpLink({
-          url: `${config.apiUrl}/trpc`,
-          async headers() {
-            const username = getStoredUsername();
-
-            if (!username) {
-              return {};
-            }
-            return {
-              'x-username': username,
-            };
-          },
-        }),
-      ],
-    }),
-  );
+  const username = useUsername();
 
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <Switch>
-          <main className="flex mt-16 flex-col items-center justify-center w-full">
+    <QueryClientProvider client={queryClient}>
+      <Switch>
+        <>
+          <header className='px-2 py-1 flex justify-between border-b border-slate-400'>
+            <Link to='/home'>SIU</Link>
+            <Link to='/'>{username}</Link>
+          </header>
+          <main className="flex mt-4 flex-col items-center justify-center w-full">
             <Route path="/">
               <NewUserRoute />
             </Route>
@@ -52,9 +34,10 @@ export function App() {
               {(params) => <GameRoute gameId={params.gameId!} />}
             </Route>
           </main>
-        </Switch>
-      </QueryClientProvider>
-    </trpc.Provider>
+        </>
+      </Switch>
+      <Toaster position="bottom-right" />
+    </QueryClientProvider>
   )
 }
 

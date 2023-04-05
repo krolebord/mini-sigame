@@ -1,27 +1,25 @@
-name = "tic-api"
-type = "javascript"
-main = "./build/index.mjs"
-compatibility_date = "2023-03-26"
+name = "mini-sigame-api"
+main = "./src/index.ts"
+compatibility_date = "2023-04-05"
 account_id = "1f507c7933d231cc8051d23050bda6ab"
+node_compat = true
 
-routes = [
-	{ pattern = "tic-api.krolebord.com", custom_domain = true }
+route = { pattern = "api.minisi.krolebord.com", custom_domain = true }
+
+kv_namespaces = [
+  { binding = "SIGAME_KV", id = "7ad06ba0726343cd9131245541ac230b", preview_id="7ad06ba0726343cd9131245541ac230b" }
 ]
 
-[miniflare]
-port=8788
-
-[build.upload]
-format = "modules"
+[[r2_buckets]]
+binding = "SIPACKS"
+bucket_name = "sigame"
+preview_bucket_name = "sigamelocal"
 
 [durable_objects]
 bindings = [
-  { name = "LOBBY", class_name = "TicTacToeLobby" }
+  { name = "SIGAME_LOBBY", class_name = "MiniSigameLobby" }
 ]
 
-# Indicate that you want the ChatRoom and RateLimiter classes to be callable as Durable Objects.
 [[migrations]]
-tag = "v1" # Should be unique for each entry
-new_classes = ["TicTacToeLobby"]
-
-
+tag = "si-1.0"
+new_classes = ["MiniSigameLobby"]

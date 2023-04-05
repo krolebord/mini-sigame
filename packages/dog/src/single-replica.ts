@@ -37,7 +37,7 @@ export abstract class SingleReplica implements SingleReplica {
 	onopen?(state: SingleSocketEvent): Promise<void> | void;
 
 	// A message was received
-	onmessage?(state: SingleSocketEvent, data: string): Promise<void> | void;
+	onmessage?(state: SingleSocketEvent, data: string): Promise<void>;
 
 	// The connection was closed
 	onclose?(state: SingleSocketEvent): Promise<void> | void;
@@ -94,6 +94,7 @@ export abstract class SingleReplica implements SingleReplica {
 						}
 
 						try {
+							console.log('closing server');
 							server.close();
 						} catch (e) {
 							// already closed
@@ -101,21 +102,28 @@ export abstract class SingleReplica implements SingleReplica {
 					}
 				}
 
-				server.addEventListener('close', closer);
-				server.addEventListener('error', closer);
+				server.addEventListener('close', (...e) => void closer(...e).catch(e => console.error('server onclose', e)));
+				server.addEventListener('error', (...e) => void closer(...e).catch(e => console.error('server onerror', e)));
 
 				if (this.onmessage) {
 					server.addEventListener('message', evt => {
-						this.onmessage!(event, evt.data);
+						this.onmessage!(event, evt.data).catch(e => console.error('server onmessage', e));
 					});
 				}
 
 				state.socket.add(server);
 				this.pool.set(rid, state);
 
-				if (this.onopen) {
-					await this.onopen(event);
+				try {
+					if (this.onopen) {
+						await this.onopen(event);
+					}
 				}
+				catch (err) {
+					console.error('server onopen', err);
+					server.close(4002, 'Error onopen');
+				}
+
 			}
 		);
 	}

@@ -1,87 +1,60 @@
-import type { GameState, GameStatePayload, Message } from "@tic/worker";
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { GameState, HostState, LobbyState, Message } from "@tic/worker";
+import clsx from "clsx";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { config } from "../config";
+import { useGameState } from "../hooks/use-game-state";
+import { fetchPack, invalidatePackCache } from "../utils/fetch-pack";
 import { useUsername } from "./new-user";
 
-type ExtractState<T extends GameState> = Extract<GameStatePayload, { type: T }>
-type Dispatch = (action: Message) => void;
-
-function ChooseSides({ gameState }: { gameState: ExtractState<'lobby:choose-sides'> & { dispatch: Dispatch } }) {
-  const username = useUsername();
-
-  const ready = username === gameState.lobby.player1 ? gameState.player1Ready : gameState.player2Ready;
-  
-  return <>
-    <p>Get ready</p>
-    <p>{gameState.lobby.player1} - {gameState.firstTurn === 'player1' ? 'X' : 'O'} - { gameState.player1Ready ? 'ready' : 'not ready' }</p>
-    <p>{gameState.lobby.player2} - {gameState.firstTurn === 'player1' ? 'O' : 'X'} - { gameState.player2Ready ? 'ready' : 'not ready' }</p>
-    <button onClick={() => gameState.dispatch({ type: 'lobby:switch-sides' })}>Switch sides</button>
-    {!ready && <button onClick={() => gameState.dispatch({ type: 'lobby:ready' })}>Ready</button>}
-    {ready && <button onClick={() => gameState.dispatch({ type: 'lobby:unready' })}>Not Ready</button>}
-  </>;
-}
-
-function Game({ gameState }: { gameState: ExtractState<'game'> & { dispatch: Dispatch } }) {
-  return <>
-    <p>{gameState.lobby.player1} vs {gameState.lobby.player2}</p>
-    <p>Turn: {gameState.turn}</p>
-    {gameState.board.map((row, y) => <div key={y} className="flex">
-      {row.map((cell, x) =>
-        <button
-          key={`${y}-${x}`}
-          onClick={() => gameState.dispatch({ type: 'game:move', x, y })}
-          className="w-8 h-8 border border-slate-500"
-        >
-          {cell}
-        </button>
-      )}
-    </div>)}
-  </>;
-}
-
-function GameOver({ gameState }: { gameState: ExtractState<'game:over'> & { dispatch: Dispatch } }) {
-  const isDraw = gameState.winner === 'draw';
-  const winner = gameState.winner === 'player1' ? gameState.lobby.player1 : gameState.lobby.player2;
-  return <>
-    {isDraw
-      ? <p>Draw</p>
-      : <p>Winner: {winner}</p>
-    }
-    <Link className="border border-slate-500 rounded-md px-2" to={'/home'}>Go Home</Link>
-  </>;
+function PlayerAvatar({ avatar }: { avatar: string }) {
+  return <div className="flex select-none cursor-default items-center justify-center min-w-[6rem] min-h-[6rem] text-6xl rounded-md bg-blue-400">
+    {avatar}
+  </div>
 }
 
 export function GameRoute({ gameId }: { gameId: string }) {
-  const username = useUsername();
-  const [gameState, setGameState] = useState<GameStatePayload & { dispatch: Dispatch } | null>(null);
+  const data = useGameState(gameId);
 
-  useEffect(() => {
-    const socket = new WebSocket(`${config.wsUrl}/game/${gameId}?u=${username}`);
+  if (data.status === 'loading-pack') {
+    return <p>Loading pack...</p>;
+  }
 
-    socket.addEventListener('message', e => {
-      const message = JSON.parse(e.data);
-      setGameState({
-        ...message,
-        dispatch: (action) => {
-          socket.send(JSON.stringify(action));
-        }
-      });
-    });
+  const { invalidatePack } = data;
+  if (data.status === 'connecting') {
+    return <>
+      <p>Connecting...</p>
+      <button onClick={invalidatePack}>Reload pack</button>
+    </>;
+  }
 
-    return () => {
-      socket.close();
-    }
-  }, [username]);
+  const { lobbyState, isHost } = data;
+
   return <>
-    {!gameState && <p>Connecting...</p>}
-    {gameState && <>
-      <p>Game ID: {gameId}</p>
-      <p>State: {gameState?.type}</p>
-
-      {gameState.type === 'lobby:choose-sides' && <ChooseSides gameState={gameState} />}
-      {gameState.type === 'game' && <Game gameState={gameState} />}
-      {gameState.type === 'game:over' && <GameOver gameState={gameState} />}
-    </>}
+    <p>{lobbyState.pack.name}</p>
+    <div className="flex flex-col w-full">
+      <div className="flex w-full">
+        <div className="flex px-3 flex-col items-center">
+          <p>Host:</p>
+          <PlayerAvatar avatar={lobbyState.host.avatar} />
+          <p>{lobbyState.host.id}</p>
+          {isHost && <>
+            <button onClick={data.startGame}>Start game</button>
+          </>}
+        </div>
+        <div className="flex-[3_3_0%] min-h-[60vh]">
+          lobby
+        </div>
+      </div>
+      <div className="flex justify-center gap-4">
+        {lobbyState.players.map(player => 
+          <div key={player.user.id} className="flex flex-col items-center">
+            <PlayerAvatar avatar={player.user.avatar} />
+            <p className={clsx(!player.ready && 'text-gray-600')}>{player.user.id}</p>
+          </div>
+        )}
+      </div>
+    </div>
   </>;
 }
