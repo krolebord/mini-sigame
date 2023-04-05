@@ -10,20 +10,21 @@ const worker = {
         return new Response(null);
       }
 
-			const url = new URL(request.url);
+      const url = new URL(request.url);
       const pathSegments = url.pathname.slice(1).split('/');
 
-			if (pathSegments[0] === 'upload-pack') {
-				return handlePackUpload({
-					bucket: env.SIPACKS,
-					kv: env.SIGAME_KV,
-					lobby: env.SIGAME_LOBBY,
-					request
-				});
-			}
+      if (pathSegments[0] === 'upload-pack') {
+        return handlePackUpload({
+          bucket: env.SIPACKS,
+          kv: env.SIGAME_KV,
+          lobby: env.SIGAME_LOBBY,
+          request,
+        });
+      }
 
       if (pathSegments[0] === 'game') {
-        const username = request.headers.get('x-username') ?? url.searchParams.get('u');
+        const username =
+          request.headers.get('x-username') ?? url.searchParams.get('u');
 
         if (!username) {
           throw new Error('missing username');
@@ -36,16 +37,16 @@ const worker = {
         } else if (gameId.length <= 32) {
           id = env.SIGAME_LOBBY.idFromName(gameId);
         } else {
-          throw new Error("invaid gameId");
+          throw new Error('invaid gameId');
         }
 
         const roomObject = env.SIGAME_LOBBY.get(id);
         const newUrl = new URL(request.url);
-        newUrl.pathname = "/";
+        newUrl.pathname = '/';
 
         const req = setHeaders(request, {
           objectId: roomObject.id,
-          requestId: username
+          requestId: username,
         });
 
         return roomObject.fetch(newUrl.href, req);
@@ -53,7 +54,7 @@ const worker = {
 
       return new Response('Not found', { status: 404 });
     });
-  }
+  },
 } satisfies ExportedHandler<Env>;
 
 export { MiniSigameLobby } from './lobby';

@@ -26,6 +26,7 @@ importers:
       jszip: ^3.10.1
       just-diff-apply: ^5.5.0
       postcss: ^8.4.21
+      prettier: ^2.8.7
       react: ^18.2.0
       react-dom: ^18.2.0
       react-hot-toast: ^2.4.0
@@ -57,6 +58,7 @@ importers:
       autoprefixer: 10.4.14_postcss@8.4.21
       csstype: 3.1.1
       postcss: 8.4.21
+      prettier: 2.8.7
       tailwindcss: 3.2.7_postcss@8.4.21
       typescript: 4.9.5
       vite: 4.2.1
@@ -72,6 +74,7 @@ importers:
       just-diff-apply: ^5.5.0
       miniflare: ^2.13.0
       npm-run-all: ^4.1.5
+      prettier: ^2.8.7
       superjson: ^1.12.2
       vitest: ^0.24.5
       wrangler: ^2.1.14
@@ -91,6 +94,7 @@ importers:
       cross-env: 7.0.3
       just-diff-apply: 5.5.0
       miniflare: 2.13.0
+      prettier: 2.8.7
       vitest: 0.24.5
       wrangler: 2.13.0
 

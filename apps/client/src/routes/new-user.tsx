@@ -1,5 +1,5 @@
-import { useState, useSyncExternalStore } from "react";
-import { Link } from "wouter";
+import { useState, useSyncExternalStore } from 'react';
+import { Link } from 'wouter';
 
 const usernameKey = 'username';
 
@@ -24,7 +24,7 @@ export function useUsername() {
         window.removeEventListener('username-change', handler);
       };
     },
-    () => getStoredUsername() ?? '',
+    () => getStoredUsername() ?? ''
   );
 }
 
@@ -36,25 +36,34 @@ export function setStoredUsername(username: string) {
 export function NewUserRoute() {
   const username = useUsername();
 
-  return (<>
-    <h1 className="text-xl font-semibold">Welcome</h1>
-    <div className="flex flex-col gap-2 items-center">
-      <p>Enter your name</p>
-      <input
-        type="text"
-        value={username}
-        className="border border-slate-500 rounded-md px-2"
-        onInput={(e) => {
-          const input = e.target as HTMLInputElement;
-          setStoredUsername(input.value);
-        }}
-      />
-      {username.length <= 3 && (
-        <button className="rounded-md border border-slate-500 px-2 text-slate-500" disabled>Continue</button>
-      )}
-      {username.length > 3 && (
-        <Link className="rounded-md border border-slate-500 px-2" to="/home">Continue</Link>
-      )}
-    </div>
-  </>);
+  return (
+    <>
+      <h1 className="text-xl font-semibold">Welcome</h1>
+      <div className="flex flex-col gap-2 items-center">
+        <p>Enter your name</p>
+        <input
+          type="text"
+          value={username}
+          className="border border-slate-500 rounded-md px-2"
+          onInput={(e) => {
+            const input = e.target as HTMLInputElement;
+            setStoredUsername(input.value);
+          }}
+        />
+        {username.length <= 3 && (
+          <button
+            className="rounded-md border border-slate-500 px-2 text-slate-500"
+            disabled
+          >
+            Continue
+          </button>
+        )}
+        {username.length > 3 && (
+          <Link className="rounded-md border border-slate-500 px-2" to="/home">
+            Continue
+          </Link>
+        )}
+      </div>
+    </>
+  );
 }

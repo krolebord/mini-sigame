@@ -1,10 +1,10 @@
 export type {
   GameState,
   GameStateType,
-	LobbyState,
-	HostState,
+  LobbyState,
+  HostState,
   SigameLobby,
   Message,
-	Action,
-	ActionType,
+  Action,
+  ActionType,
 } from './src/lobby';

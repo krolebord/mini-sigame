@@ -1,22 +1,26 @@
-import { XMLParser } from "fast-xml-parser";
-import JSZip from "jszip";
-import { z } from "zod";
-import { zfd } from "zod-form-data";
+import { XMLParser } from 'fast-xml-parser';
+import JSZip from 'jszip';
+import { z } from 'zod';
+import { zfd } from 'zod-form-data';
 
-type PackParsingResult = {
-  success: true
-  manifest: object,
-  packedAssets: Blob,
-} | {
-  success: false,
-  message?: string,
-}
+type PackParsingResult =
+  | {
+      success: true;
+      manifest: object;
+      packedAssets: Blob;
+    }
+  | {
+      success: false;
+      message?: string;
+    };
 
 const packSchema = zfd.formData({
   pack: zfd.file(),
 });
 
-export async function parsePack(formData: FormData): Promise<PackParsingResult> {
+export async function parsePack(
+  formData: FormData
+): Promise<PackParsingResult> {
   const parseResult = packSchema.safeParse(formData);
 
   if (!parseResult.success) {
@@ -25,7 +29,7 @@ export async function parsePack(formData: FormData): Promise<PackParsingResult> 
 
   try {
     const packBuffer = await parseResult.data.pack.arrayBuffer();
-    
+
     const zip = new JSZip();
     await zip.loadAsync(packBuffer);
 
@@ -46,19 +50,21 @@ export async function parsePack(formData: FormData): Promise<PackParsingResult> 
     const assets = new Map<string, Blob>();
 
     const assetFolders = ['Images', 'Audio', 'Video'];
-    const validFiles = Object.entries(zip.files)
-      .filter(([filename, file]) => {
-        const folder = filename.split('/')[0];
-        return assetFolders.includes(folder) && !file.dir;
-      });
+    const validFiles = Object.entries(zip.files).filter(([filename, file]) => {
+      const folder = filename.split('/')[0];
+      return assetFolders.includes(folder) && !file.dir;
+    });
     for (const [_, entry] of validFiles) {
       const name = entry.unsafeOriginalName?.split('/').pop();
-      
+
       if (!name) {
         continue;
       }
 
-      assets.set(normalizeFilename(decodeURIComponent(name)), await entry.async('blob'));
+      assets.set(
+        normalizeFilename(decodeURIComponent(name)),
+        await entry.async('blob')
+      );
     }
 
     const packedAssets = await packAssets(assets);
@@ -71,9 +77,8 @@ export async function parsePack(formData: FormData): Promise<PackParsingResult> 
       success: true,
       packedAssets,
       manifest,
-    }
-  }
-  catch (e) {
+    };
+  } catch (e) {
     console.error('parse error', e);
     return { success: false, message: 'unexpected error' };
   }
@@ -89,8 +94,8 @@ async function packAssets(assets: Map<string, Blob>) {
   for (const [filename, content] of assets) {
     zip.file(filename, content);
   }
-  
-  const assetsPack = await zip.generateAsync({ type: "blob" });
+
+  const assetsPack = await zip.generateAsync({ type: 'blob' });
 
   return assetsPack;
 }

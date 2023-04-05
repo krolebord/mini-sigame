@@ -8,7 +8,9 @@ export function getStructure(a: unknown): string {
   }
 
   if (typeof a === 'object') {
-    return `{ ${Object.entries(a).map(([k, v]) => `${k}: ${getStructure(v)}`).join(', ')} }`;
+    return `{ ${Object.entries(a)
+      .map(([k, v]) => `${k}: ${getStructure(v)}`)
+      .join(', ')} }`;
   }
 
   return typeof a;

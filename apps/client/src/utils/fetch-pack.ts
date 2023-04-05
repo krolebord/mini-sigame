@@ -1,4 +1,4 @@
-import { config } from "../config";
+import { config } from '../config';
 
 function getPackCaches() {
   return caches.open('si-packs');
@@ -13,7 +13,7 @@ export async function fetchPack(key: string, signal?: AbortSignal) {
 
   if (!res) {
     res = await fetch(url, {
-      signal
+      signal,
     });
 
     if (!res.ok) throw new Error('Pack not found!');
