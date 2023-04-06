@@ -49,11 +49,11 @@ export function HomeRoute() {
         <p>Hello, {username()}</p>
       </div>
       <form method="post" onsubmit={handleNewGameSubmit}>
-        <input type="file" name="pack" />
+        <input type="file" name="pack" disabled={packUploadMutation.isLoading} />
         <button
           type="submit"
-          disabled={packUploadMutation.isLoading}
           class="rounded-md border border-slate-500 px-2 disabled:bg-slate-200"
+          disabled={packUploadMutation.isLoading}
         >
           Create new game
         </button>

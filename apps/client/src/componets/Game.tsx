@@ -60,7 +60,7 @@ export function GameProvider(props: GameProviderProps) {
       if (socket.readyState !== socket.OPEN) return;
       socket.send(JSON.stringify(action));
     };
-    setStore('dispatch', dispatch);
+    setStore({ dispatch });
 
     const handleMessage = (e: MessageEvent) => {
       const message = JSON.parse(e.data) as Message;
@@ -121,8 +121,13 @@ export function GameProvider(props: GameProviderProps) {
   </Switch>;
 }
 
-export const useGameStore = () => {
+export function useGameStore() {
   const store = useContext(GameContext);
   if (!store) throw new Error('useGameStore must be used within GameProvider');
   return store;
+};
+
+export function useIsHost(): Accessor<boolean> {
+  const store = useGameStore();
+  return () => !!store.hostState;
 };

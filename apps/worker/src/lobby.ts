@@ -96,10 +96,11 @@ type ActionHandlers = {
 
 const actionSchema = z.discriminatedUnion('type', [
   z.object({
-    type: z.literal('lobby:ready'),
+    type: z.literal('host:start'),
   }),
   z.object({
-    type: z.literal('host:start'),
+    type: z.literal('host:kick'),
+    player: z.string(),
   }),
 ]);
 
@@ -138,8 +139,27 @@ export class MiniSigameLobby extends SingleReplica {
   }
 
   private readonly handlers: Partial<ActionHandlers> = {
+    'host:kick': async (event, data) => {
+      if (!this.isHost(event.rid)) {
+        return;
+      }
 
+      const player = this.lobbyState.players.find((player) => player.user.id === data.player);
+
+      if (!player || player.online) {
+        return;
+      }
+
+      const index = this.lobbyState.players.indexOf(player!);
+
+      this.lobbyState.players.splice(index, 1);
+      this.broadcastPatch();
+    }
   };
+
+  private isHost(rid: string): boolean {
+    return this.manifest.host === rid;
+  }
 
   async receive(req: Request) {
     return await handleResponse(req, () => {

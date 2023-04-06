@@ -1,6 +1,6 @@
 import { useParams } from '@solidjs/router';
 import { For, Show } from 'solid-js';
-import { GameProvider, useGameStore, useInvalidatePack } from '../componets/Game';
+import { GameProvider, useGameStore, useInvalidatePack, useIsHost } from '../componets/Game';
 
 function PlayerAvatar({ avatar }: { avatar: string }) {
   return (
@@ -12,6 +12,14 @@ function PlayerAvatar({ avatar }: { avatar: string }) {
 
 function Game() {
   const store = useGameStore();
+  const isHost = useIsHost();
+
+  const kickPlayer = (id: string) => {
+    store.dispatch({
+      type: 'host:kick',
+      player: id,
+    });
+  }
 
   return (<>
     <p>{store.lobbyState.pack.name}</p>
@@ -35,6 +43,9 @@ function Game() {
               <p classList={{ 'text-gray-400': !player.online }}>
                 {player.user.id}
               </p>
+              <Show when={!player.online && isHost()}>
+                 <button onclick={() => kickPlayer(player.user.id)}>Kick</button>
+              </Show>
             </div>
           )}
         </For>
