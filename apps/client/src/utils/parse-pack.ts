@@ -1,6 +1,5 @@
 import { XMLParser } from 'fast-xml-parser';
 import JSZip from 'jszip';
-import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 
 type PackParsingResult =

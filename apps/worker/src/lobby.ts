@@ -12,6 +12,7 @@ type User = {
 };
 
 export type HostState = {
+  hostId: string;
   answer?: string;
 };
 
@@ -190,12 +191,16 @@ export class MiniSigameLobby extends SingleReplica {
 
     this.previousLobbyState = this.lobbyState;
 
-    this.hostState = {};
+    this.hostState = {
+      hostId: pack.host,
+    };
 
     console.log('initialized lobby', this.uid);
   }
 
   onopen({ rid, socket }: SingleSocketEvent): void | Promise<void> {
+    socket.send(JSON.stringify(this.getLobbyStateMessage()));
+
     if (this.manifest.host === rid) {
       socket.send(JSON.stringify(this.getHostStateMessage()));
     } else {
@@ -215,8 +220,6 @@ export class MiniSigameLobby extends SingleReplica {
 
         this.broadcast(JSON.stringify(this.getLobbyStateMessage()));
       }
-
-      socket.send(JSON.stringify(this.getLobbyStateMessage()));
     }
   }
 
