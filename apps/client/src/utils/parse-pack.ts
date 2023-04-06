@@ -1,6 +1,5 @@
 import { XMLParser } from 'fast-xml-parser';
 import JSZip from 'jszip';
-import { zfd } from 'zod-form-data';
 
 type PackParsingResult =
   | {
@@ -13,21 +12,17 @@ type PackParsingResult =
       message?: string;
     };
 
-const packSchema = zfd.formData({
-  pack: zfd.file(),
-});
-
 export async function parsePack(
   formData: FormData
 ): Promise<PackParsingResult> {
-  const parseResult = packSchema.safeParse(formData);
+  const pack = formData.get('pack');
 
-  if (!parseResult.success) {
-    return { success: false, message: parseResult.error.message };
+  if (!pack || !(pack instanceof Blob)) {
+    return { success: false, message: 'Missing file' };
   }
 
   try {
-    const packBuffer = await parseResult.data.pack.arrayBuffer();
+    const packBuffer = await pack.arrayBuffer();
 
     const zip = new JSZip();
     await zip.loadAsync(packBuffer);
