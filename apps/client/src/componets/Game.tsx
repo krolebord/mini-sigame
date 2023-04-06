@@ -1,6 +1,6 @@
 import { createQuery, useQueryClient } from '@tanstack/solid-query';
 import { GameState, LobbyState, HostState, Message, Action } from '@tic/worker';
-import { diffApply } from 'just-diff-apply';
+import { patch } from 'jsondiffpatch';
 import { Accessor, createContext, createEffect, Match, onCleanup, Switch, useContext, JSX } from 'solid-js';
 import { createStore, produce, reconcile } from 'solid-js/store'
 import { config } from '../config';
@@ -14,7 +14,6 @@ export type ExtractStateWithDispatch<T extends GameState> = ExtractState<T> & {
 export type Dispatch = (action: Action) => void;
 
 type ClientGameState = {
-  username: string;
   lobbyState: LobbyState;
   hostState?: HostState;
   dispatch: Dispatch;
@@ -73,8 +72,10 @@ export function GameProvider(props: GameProviderProps) {
           setStore('hostState', message.state);
           break;
         case 'patch':
-          if (!store.username) return;
-          setStore('lobbyState', reconcile(diffApply(store.lobbyState, message.patch)));
+          if (!store.lobbyState) return;
+          setStore('lobbyState', produce(state => {
+            patch(state, message.patch);
+          }));
           break;
       }
     }

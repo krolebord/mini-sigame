@@ -1,6 +1,5 @@
 import { SingleReplica, SingleSocketEvent } from '@tic/dog';
-import { diff } from 'just-diff';
-import { DiffOps } from 'just-diff-apply';
+import { diff, Delta } from 'jsondiffpatch';
 import { z } from 'zod';
 import { Env } from './env';
 import { handleResponse } from './handlers';
@@ -52,7 +51,7 @@ export type LobbyState = {
   host: User;
   players: {
     user: User;
-    ready: boolean;
+    online: boolean;
     score: number;
   }[];
   round: {
@@ -79,7 +78,7 @@ export type Message =
     }
   | {
       type: 'patch';
-      patch: DiffOps;
+      patch: Delta;
     };
 
 export type Action = z.infer<typeof actionSchema>;
@@ -104,6 +103,11 @@ const actionSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
+type FullState = {
+  lobby: LobbyState;
+  host: HostState;
+}
+
 export class MiniSigameLobby extends SingleReplica {
   public maxUsers: number = 8;
 
@@ -118,10 +122,15 @@ export class MiniSigameLobby extends SingleReplica {
 
   private readonly kv: KVNamespace;
 
+  private readonly storageKey;
+  private readonly syncPeriod = 1000 * 10;
+
   constructor(private state: DurableObjectState, env: Env) {
     super(state);
 
     this.kv = env.SIGAME_KV;
+
+    this.storageKey = `lobby:${this.uid}`;
 
     this.state.blockConcurrencyWhile(() =>
       this.initializeLobby().catch(console.error)
@@ -129,19 +138,7 @@ export class MiniSigameLobby extends SingleReplica {
   }
 
   private readonly handlers: Partial<ActionHandlers> = {
-    'lobby:ready': async (event) => {
-      const { rid } = event;
-      const player = this.lobbyState.players.find(
-        (player) => player.user.id === rid
-      );
 
-      if (!player) {
-        return;
-      }
-
-      player.ready = true;
-      this.broadcastPatch();
-    },
   };
 
   async receive(req: Request) {
@@ -156,6 +153,24 @@ export class MiniSigameLobby extends SingleReplica {
 
   private async initializeLobby() {
     console.log('initializing lobby', this.uid);
+    const loadedState = await this.recoverFullState();
+
+    if (loadedState) {
+      this.lobbyState.players.forEach((player) => {
+        player.online = false;
+      });
+
+      this.lobbyState = loadedState.lobby;
+      this.previousLobbyState = structuredClone(this.lobbyState);
+
+      this.hostState = loadedState.host;
+      
+      this.initialized = true;
+      
+      console.log('recovered lobby', this.uid);
+      return;
+    }
+
     const pack = await getPack(this.kv, this.uid);
 
     if (!pack) {
@@ -189,18 +204,17 @@ export class MiniSigameLobby extends SingleReplica {
       players: [],
     };
 
-    this.previousLobbyState = this.lobbyState;
+    this.previousLobbyState = structuredClone(this.lobbyState);
 
     this.hostState = {
       hostId: pack.host,
     };
 
+    this.storeFullState();
     console.log('initialized lobby', this.uid);
   }
 
   onopen({ rid, socket }: SingleSocketEvent): void | Promise<void> {
-    socket.send(JSON.stringify(this.getLobbyStateMessage()));
-
     if (this.manifest.host === rid) {
       socket.send(JSON.stringify(this.getHostStateMessage()));
     } else {
@@ -211,16 +225,34 @@ export class MiniSigameLobby extends SingleReplica {
       if (!player) {
         this.lobbyState.players.push({
           score: 0,
-          ready: false,
+          online: true,
           user: {
             id: rid,
             avatar: pickRandomAvatar(),
           },
         });
-
-        this.broadcast(JSON.stringify(this.getLobbyStateMessage()));
+      } else {
+        player.online = true;
       }
+
+      this.broadcastPatch();
     }
+
+    socket.send(JSON.stringify(this.getLobbyStateMessage()));
+    this.scheduleSync();
+  }
+
+  onclose({ rid }: SingleSocketEvent): void | Promise<void> {
+    const player = this.lobbyState.players.find(
+      (player) => player.user.id === rid
+    );
+
+    if (!player) {
+      return;
+    }
+
+    player.online = false;
+    this.broadcastPatch();
   }
 
   async onmessage(state: SingleSocketEvent, data: string): Promise<void> {
@@ -231,6 +263,7 @@ export class MiniSigameLobby extends SingleReplica {
       return;
     }
 
+    this.scheduleSync();
     return this.handlers[message.data.type]?.(state, message.data as never);
   }
 
@@ -250,10 +283,12 @@ export class MiniSigameLobby extends SingleReplica {
 
   private broadcastPatch() {
     const patch = diff(this.previousLobbyState, this.lobbyState);
-    this.previousLobbyState = this.lobbyState;
+    this.previousLobbyState = structuredClone(this.lobbyState);
+
+    if (!patch) return;
 
     this.broadcast(
-      JSON.stringify({
+      JSON.stringify(<Message>{
         type: 'patch',
         patch,
       })
@@ -265,6 +300,39 @@ export class MiniSigameLobby extends SingleReplica {
       this.manifest.host,
       JSON.stringify(this.getHostStateMessage())
     );
+  }
+
+  private async scheduleSync() {
+    const alarm = await this.state.storage.getAlarm();
+
+    if (alarm) {
+      return;
+    }
+
+    await this.state.storage.setAlarm(Date.now() + this.syncPeriod, {
+      allowUnconfirmed: true,
+    });
+  }
+
+  async alarm() {
+    await this.storeFullState();
+  }
+
+  private storeFullState() {
+    console.log('storing full state', this.uid);
+    return this.state.storage.put(this.storageKey, {
+      host: this.hostState,
+      lobby: this.lobbyState,
+    } as FullState, {
+      allowUnconfirmed: true,
+    });
+  }
+
+  private async recoverFullState() {
+    const state = await this.state.storage.get(this.storageKey);
+
+    // TODO Add validation
+    return state as FullState | undefined;
   }
 }
 

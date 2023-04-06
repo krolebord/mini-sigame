@@ -19,8 +19,8 @@ importers:
       '@tic/worker': workspace:*
       autoprefixer: ^10.4.14
       fast-xml-parser: ^4.1.3
+      jsondiffpatch: ^0.4.1
       jszip: ^3.10.1
-      just-diff-apply: ^5.5.0
       postcss: ^8.4.21
       prettier: ^2.8.7
       rollup-plugin-visualizer: ^5.9.0
@@ -34,8 +34,8 @@ importers:
       '@solidjs/router': 0.8.2_solid-js@1.7.2
       '@tanstack/solid-query': 4.27.0_solid-js@1.7.2
       fast-xml-parser: 4.1.3
+      jsondiffpatch: 0.4.1
       jszip: 3.10.1
-      just-diff-apply: 5.5.0
       solid-js: 1.7.2
       solid-toast: 0.5.0_solid-js@1.7.2
     devDependencies:
@@ -106,9 +106,8 @@ importers:
       '@tic/dog': workspace:*
       cross-env: ^7.0.3
       esbuild: ^0.17.14
+      jsondiffpatch: ^0.4.1
       jszip: ^3.10.1
-      just-diff: ^6.0.2
-      just-diff-apply: ^5.5.0
       miniflare: ^2.13.0
       npm-run-all: ^4.1.5
       prettier: ^2.8.7
@@ -120,8 +119,8 @@ importers:
     dependencies:
       '@tic/dog': link:../../packages/dog
       esbuild: 0.17.14
+      jsondiffpatch: 0.4.1
       jszip: 3.10.1
-      just-diff: 6.0.2
       npm-run-all: 4.1.5
       superjson: 1.12.2
       zod: 3.21.4
@@ -129,7 +128,6 @@ importers:
     devDependencies:
       '@cloudflare/workers-types': 4.20230321.0
       cross-env: 7.0.3
-      just-diff-apply: 5.5.0
       miniflare: 2.13.0
       prettier: 2.8.7
       vitest: 0.24.5
@@ -2133,6 +2131,10 @@ packages:
     resolution: {integrity: sha512-gxtyfqMg7GKyhQmb056K7M3xszy/myH8w+B4RT+QXBQsvAOdc3XymqDDPHx1BgPgsdAA5SIifona89YtRATDzw==}
     dev: true
 
+  /diff-match-patch/1.0.5:
+    resolution: {integrity: sha512-IayShXAgj/QMXgB0IWmKx+rOPuGMhqm5w6jvFxmVenXKIzRqTAAsbBPT3kWQeGANj3jGgvcvv4yK6SxqYmikgw==}
+    dev: false
+
   /dir-glob/3.0.1:
     resolution: {integrity: sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA==}
     engines: {node: '>=8'}
@@ -3454,6 +3456,16 @@ packages:
     hasBin: true
     dev: true
 
+  /jsondiffpatch/0.4.1:
+    resolution: {integrity: sha512-t0etAxTUk1w5MYdNOkZBZ8rvYYN5iL+2dHCCx/DpkFm/bW28M6y5nUS83D4XdZiHy35Fpaw6LBb+F88fHZnVCw==}
+    engines: {node: '>=8.17.0'}
+    hasBin: true
+    dependencies:
+      chalk: 2.4.2
+      diff-match-patch: 1.0.5
+    dev: false
+    bundledDependencies: []
+
   /jsx-ast-utils/3.3.3:
     resolution: {integrity: sha512-fYQHZTZ8jSfmWZ0iyzfwiU4WDX4HpHbMCZ3gPlWYiCl3BoeOTsqKBqnTVfH2rYT7eP5c3sVbeSPHnnJOaTrWiw==}
     engines: {node: '>=4.0'}
@@ -3473,9 +3485,6 @@ packages:
 
   /just-diff-apply/5.5.0:
     resolution: {integrity: sha512-OYTthRfSh55WOItVqwpefPtNt2VdKsq5AnAK6apdtR6yCH8pr0CmSr710J0Mf+WdQy7K/OzMy7K2MgAfdQURDw==}
-
-  /just-diff/6.0.2:
-    resolution: {integrity: sha512-S59eriX5u3/QhMNq3v/gm8Kd0w8OS6Tz2FS1NG4blv+z0MuQcBRJyFWjdovM0Rad4/P4aUPFtnkNjMjyMlMSYA==}
     dev: false
 
   /kleur/4.1.5:

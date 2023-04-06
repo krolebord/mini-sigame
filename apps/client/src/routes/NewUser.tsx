@@ -3,15 +3,20 @@ import { createSignal, Show } from 'solid-js';
 
 const usernameKey = 'username';
 
-const [username, setUsername] = createSignal(getStoredUsername() ?? createAnonUsername());
+const [username, setUsername] = createSignal(getStoredUsername());
 
 window.addEventListener('storage', (e: { key: string | null }) => {
   if (e.key !== usernameKey) return;
-  setUsername(getStoredUsername() ?? createAnonUsername());
+  setUsername(getStoredUsername());
 });
 
 function getStoredUsername() {
-  return localStorage.getItem(usernameKey);
+  const username = localStorage.getItem(usernameKey);
+  if (username) return username;
+
+  const anonUsername = createAnonUsername();
+  setStoredUsername(anonUsername);
+  return anonUsername;
 }
 
 function setStoredUsername(username: string) {

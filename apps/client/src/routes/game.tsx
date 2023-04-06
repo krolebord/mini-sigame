@@ -32,7 +32,7 @@ function Game() {
           {(player) => (
             <div class="flex flex-col items-center">
               <PlayerAvatar avatar={player.user.avatar} />
-              <p classList={{ 'text-gray-600': player.ready }}>
+              <p classList={{ 'text-gray-400': !player.online }}>
                 {player.user.id}
               </p>
             </div>
