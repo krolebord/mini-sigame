@@ -1,9 +1,9 @@
 import { useNavigate } from '@solidjs/router';
 import { createMutation } from '@tanstack/solid-query';
 import { toast } from 'solid-toast';
+import { useUsername } from '../hooks/username';
 import { parsePack } from '../utils/parse-pack';
 import { uploadPack } from '../utils/upload-pack';
-import { useUsername } from './NewUser';
 
 export function HomeRoute() {
   const username = useUsername();

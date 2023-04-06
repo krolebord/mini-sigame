@@ -4,7 +4,7 @@ import { patch } from 'jsondiffpatch';
 import { Accessor, createContext, createEffect, Match, onCleanup, Switch, useContext, JSX } from 'solid-js';
 import { createStore, produce, reconcile } from 'solid-js/store'
 import { config } from '../config';
-import { useUsername } from '../routes/NewUser';
+import { useUsername } from '../hooks/username';
 import { fetchPack, invalidatePackCache } from '../utils/fetch-pack';
 
 export type ExtractState<T extends GameState> = Extract<GameState, { type: T }>;

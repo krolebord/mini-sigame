@@ -5,11 +5,11 @@ import { Link, Route, Router, Routes } from '@solidjs/router';
 import { HomeRoute } from './routes/Home';
 import {
   NewUserRoute,
-  useUsername,
 } from './routes/NewUser';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import { GameRoute } from './routes/Game';
 import { Toaster } from 'solid-toast';
+import { useUsername } from './hooks/username';
 
 export function App() {
   const queryClient = new QueryClient();

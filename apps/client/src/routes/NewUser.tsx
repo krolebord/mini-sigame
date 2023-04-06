@@ -1,36 +1,6 @@
 import { Link } from '@solidjs/router';
-import { createSignal, Show } from 'solid-js';
-
-const usernameKey = 'username';
-
-const [username, setUsername] = createSignal(getStoredUsername());
-
-window.addEventListener('storage', (e: { key: string | null }) => {
-  if (e.key !== usernameKey) return;
-  setUsername(getStoredUsername());
-});
-
-function getStoredUsername() {
-  const username = localStorage.getItem(usernameKey);
-  if (username) return username;
-
-  const anonUsername = createAnonUsername();
-  setStoredUsername(anonUsername);
-  return anonUsername;
-}
-
-function setStoredUsername(username: string) {
-  localStorage.setItem(usernameKey, username);
-  setUsername(username);
-}
-
-function createAnonUsername() {
-  return 'anon-' + Math.random().toString(36).substring(2, 9);
-}
-
-export function useUsername() {
-  return username;
-}
+import { Show } from 'solid-js';
+import { setStoredUsername, useUsername } from '../hooks/username';
 
 export function NewUserRoute() {
   const username = useUsername();
