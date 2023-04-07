@@ -1,3 +1,4 @@
+import JSZip from 'jszip';
 import { config } from '../config';
 
 function getPackCaches() {
@@ -23,7 +24,23 @@ export async function fetchPack(key: string, signal?: AbortSignal) {
     cache.put(url, resClone);
   }
 
-  return pack;
+  if (!pack) throw new Error('Pack not found!');
+
+  return unpackAssets(pack);
+}
+
+async function unpackAssets(pack: Blob): Promise<Map<string, Blob>> {
+  const zip = new JSZip();
+  await zip.loadAsync(pack);
+  const assets = new Map();
+  const files = Array.from(Object.keys(zip.files));
+  for (const relativePath of files) {
+    const file = zip.file(relativePath);
+    if (!file) continue;
+    const blob = await file.async('blob');
+    assets.set(relativePath, blob);
+  }
+  return assets;
 }
 
 export async function invalidatePackCache(key: string) {

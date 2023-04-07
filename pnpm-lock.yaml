@@ -14,10 +14,12 @@ importers:
 
   apps/client:
     specifiers:
+      '@solid-primitives/raf': ^2.1.10
       '@solidjs/router': ^0.8.2
       '@tanstack/solid-query': ^4.27.0
       '@tic/worker': workspace:*
       autoprefixer: ^10.4.14
+      class-variance-authority: ^0.5.1
       fast-xml-parser: ^4.1.3
       jsondiffpatch: ^0.4.1
       jszip: ^3.10.1
@@ -30,14 +32,20 @@ importers:
       typescript: ^4.9.5
       vite: ^4.1.1
       vite-plugin-solid: ^2.5.0
+      zod: ^3.21.4
+      zod-form-data: ^2.0.1
     dependencies:
+      '@solid-primitives/raf': 2.1.10_solid-js@1.7.2
       '@solidjs/router': 0.8.2_solid-js@1.7.2
       '@tanstack/solid-query': 4.27.0_solid-js@1.7.2
+      class-variance-authority: 0.5.1_typescript@4.9.5
       fast-xml-parser: 4.1.3
       jsondiffpatch: 0.4.1
       jszip: 3.10.1
       solid-js: 1.7.2
       solid-toast: 0.5.0_solid-js@1.7.2
+      zod: 3.21.4
+      zod-form-data: 2.0.1_zod@3.21.4
     devDependencies:
       '@tic/worker': link:../worker
       autoprefixer: 10.4.14_postcss@8.4.21
@@ -1418,6 +1426,23 @@ packages:
     resolution: {integrity: sha512-sXo/qW2/pAcmT43VoRKOJbDOfV3cYpq3szSVfIThQXNt+E4DfKj361vaAt3c88U5tPUxzEswam7GW48PJqtKAg==}
     dev: false
 
+  /@solid-primitives/raf/2.1.10_solid-js@1.7.2:
+    resolution: {integrity: sha512-kecTYDniDzk7fq6VMC79Il8jq40MW601wF4NO01GqAjMTlTwNNyozZCETTMyl0XWaNgOh1S7D5YkOIKLO3F67Q==}
+    peerDependencies:
+      solid-js: ^1.6.12
+    dependencies:
+      '@solid-primitives/utils': 6.0.0_solid-js@1.7.2
+      solid-js: 1.7.2
+    dev: false
+
+  /@solid-primitives/utils/6.0.0_solid-js@1.7.2:
+    resolution: {integrity: sha512-SSu12+vvU6J8SVWW9eGV+dqiMsc0WG1Oy8YYY9AWzRzssmzNXg/uexaW+0eqTuj8JcRAaGplMDjhraB01HOidA==}
+    peerDependencies:
+      solid-js: ^1.6.12
+    dependencies:
+      solid-js: 1.7.2
+    dev: false
+
   /@solidjs/router/0.8.2_solid-js@1.7.2:
     resolution: {integrity: sha512-gUKW+LZqxtX6y/Aw6JKyy4gQ9E7dLqp513oB9pSYJR1HM5c56Pf7eijzyXX+b3WuXig18Cxqah4tMtF0YGu80w==}
     peerDependencies:
@@ -1945,6 +1970,17 @@ packages:
     optionalDependencies:
       fsevents: 2.3.2
     dev: true
+
+  /class-variance-authority/0.5.1_typescript@4.9.5:
+    resolution: {integrity: sha512-J3tAiPbmBhPffsZ6Le3cR4o5hN78XBTst5NwCJJF7hAkZYIDuHQKV03Tb89zMDAxIONmM+DFRooMUCK5nTWpvQ==}
+    peerDependencies:
+      typescript: '>= 4.5.5 < 6'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+    dependencies:
+      typescript: 4.9.5
+    dev: false
 
   /cliui/8.0.1:
     resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}

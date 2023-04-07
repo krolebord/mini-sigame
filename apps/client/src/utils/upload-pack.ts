@@ -27,6 +27,28 @@ export async function uploadPack(options: UploadPackOptions) {
       host: username,
     };
 
+    const set = new Map<string, any>();
+
+    const a = manifest as any;
+
+    for (const round of a.package.rounds.round) {
+      for (const theme of round.themes.theme) {
+        if (!Array.isArray(theme.questions.question)) {
+          continue;
+        }
+        for (const question of theme.questions.question) {
+          if (!Array.isArray(question.scenario.atom)) {
+            continue;
+          }
+          for (const atom of question.scenario.atom) {
+            set.set(atom.meta_type, atom);
+          }
+        }
+      }
+    }
+
+    console.log([...set]);
+
     const response = await fetch(buildUploadUrl({ action: 'new-pack' }), {
       method: 'POST',
       headers: {
@@ -34,6 +56,10 @@ export async function uploadPack(options: UploadPackOptions) {
       },
       body: JSON.stringify(manifest),
     });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create pack: ${await response.text()}`);
+    }
 
     const key = (await response.json()).key as string;
 

@@ -78,7 +78,7 @@ export async function parsePack(
   }
 }
 
-function normalizeFilename(filename: string) {
+export function normalizeFilename(filename: string) {
   return encodeURIComponent(filename);
 }
 

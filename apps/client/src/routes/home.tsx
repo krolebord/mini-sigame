@@ -1,6 +1,7 @@
 import { useNavigate } from '@solidjs/router';
 import { createMutation } from '@tanstack/solid-query';
 import { toast } from 'solid-toast';
+import { Button } from '../componets/Button';
 import { useUsername } from '../hooks/username';
 import { parsePack } from '../utils/parse-pack';
 import { uploadPack } from '../utils/upload-pack';
@@ -50,13 +51,9 @@ export function HomeRoute() {
       </div>
       <form method="post" onsubmit={handleNewGameSubmit}>
         <input type="file" name="pack" disabled={packUploadMutation.isLoading} />
-        <button
-          type="submit"
-          class="rounded-md border border-slate-500 px-2 disabled:bg-slate-200"
-          disabled={packUploadMutation.isLoading}
-        >
+        <Button type="submit" disabled={packUploadMutation.isLoading}>
           Create new game
-        </button>
+        </Button>
       </form>
     </>
   );

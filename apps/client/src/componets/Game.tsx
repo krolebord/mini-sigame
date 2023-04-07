@@ -1,21 +1,21 @@
 import { createQuery, useQueryClient } from '@tanstack/solid-query';
 import { GameState, LobbyState, HostState, Message, Action } from '@tic/worker';
 import { patch } from 'jsondiffpatch';
-import { Accessor, createContext, createEffect, Match, onCleanup, Switch, useContext, JSX } from 'solid-js';
+import { Accessor, createContext, createEffect, Match, onCleanup, Switch, useContext, JSX, createComputed, createMemo } from 'solid-js';
 import { createStore, produce, reconcile } from 'solid-js/store'
+import toast from 'solid-toast';
 import { config } from '../config';
+import { useOnKey } from '../hooks/use-on-key';
 import { useUsername } from '../hooks/username';
 import { fetchPack, invalidatePackCache } from '../utils/fetch-pack';
 
 export type ExtractState<T extends GameState> = Extract<GameState, { type: T }>;
-export type ExtractStateWithDispatch<T extends GameState> = ExtractState<T> & {
-  dispatch: Dispatch;
-};
 export type Dispatch = (action: Action) => void;
 
 type ClientGameState = {
   lobbyState: LobbyState;
   hostState?: HostState;
+  assets: Map<string, Blob>;
   dispatch: Dispatch;
 };
 
@@ -43,6 +43,11 @@ export function GameProvider(props: GameProviderProps) {
     staleTime: Infinity,
     keepPreviousData: false,
     queryFn: ({ queryKey, signal }) => fetchPack(queryKey[1], signal),
+    onSettled(data, error) {
+      if (data) {
+        setStore({ assets: data });
+      }
+    },
   });
 
   const loadingPack = () => packQuery.isFetching || !packQuery.data;
@@ -77,6 +82,9 @@ export function GameProvider(props: GameProviderProps) {
             patch(state, message.patch);
           }));
           break;
+        case 'khil':
+          toast.success(`Made by Kiril Khil`, { icon: pickRandomAvatar() });
+          break;
       }
     }
 
@@ -89,8 +97,18 @@ export function GameProvider(props: GameProviderProps) {
     }
 
     const handleClose = () => {
+      toast('Connection closed');
       console.log(`[${props.gameKey}] close`);
     }
+
+    useOnKey({
+      key: () => ' ',
+      fn: () => dispatch({ type: 'request-action' })
+    })
+
+    const pingInterval = setInterval(() => {
+      dispatch({ type: 'ping' })
+    }, 3000);
 
     socket.addEventListener('message', handleMessage);
     socket.addEventListener('error', handleError);
@@ -102,12 +120,13 @@ export function GameProvider(props: GameProviderProps) {
       socket.removeEventListener('error', handleError);
       socket.removeEventListener('open', handleOpen);
       socket.removeEventListener('close', handleClose);
+      clearInterval(pingInterval);
       socket.close();
     })
   });
 
   return <Switch>
-    <Match when={loadingPack()}>
+    <Match when={!store.assets || loadingPack()}>
       <>{props.loadingPack}</>
     </Match>
     <Match when={!store.lobbyState}>
@@ -129,5 +148,27 @@ export function useGameStore() {
 
 export function useIsHost(): Accessor<boolean> {
   const store = useGameStore();
-  return () => !!store.hostState;
+  return createMemo(() => !!store.hostState);
 };
+
+const avatars = [
+  '👾',
+  '👽',
+  '👻',
+  '🤖',
+  '🤡',
+  '👹',
+  '👿',
+  '🤠',
+  '💩',
+  '🐒',
+  '🐸',
+  '🤯',
+  '😍',
+  '🥶',
+  '🦧',
+];
+function pickRandomAvatar() {
+  const index = Math.floor(Math.random() * avatars.length);
+  return avatars[index];
+}

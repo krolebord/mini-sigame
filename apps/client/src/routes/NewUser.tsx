@@ -1,5 +1,6 @@
 import { Link } from '@solidjs/router';
 import { Show } from 'solid-js';
+import { Button } from '../componets/Button';
 import { setStoredUsername, useUsername } from '../hooks/username';
 
 export function NewUserRoute() {
@@ -22,12 +23,9 @@ export function NewUserRoute() {
         <Show
           when={username().length > 3}
           fallback={
-            <button
-              class="rounded-md border border-slate-500 px-2 text-slate-500"
-              disabled
-            >
+            <Button disabled>
               Continue
-            </button>
+            </Button>
           }
         >
           <Link class="rounded-md border border-slate-500 px-2" href="/home">

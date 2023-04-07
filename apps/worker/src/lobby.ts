@@ -1,5 +1,5 @@
 import { SingleReplica, SingleSocketEvent } from '@tic/dog';
-import { diff, Delta } from 'jsondiffpatch';
+import { diff, Delta, create as createDiffer } from 'jsondiffpatch';
 import { z } from 'zod';
 import { Env } from './env';
 import { handleResponse } from './handlers';
@@ -26,20 +26,15 @@ export type GameState =
   | {
       type: 'question';
       nodes: QuestionNode[];
-    }
-  | {
-      type: 'question:timer';
-      nodes: QuestionNode[];
+      price: number;
       timerStarts: number;
+      timerTime?: number;
       timerEnds: number;
+      answeringPlayer?: string;
+      alreadyAnswered: string[];
     }
   | {
-      type: 'question:time-stopped';
-      nodes: QuestionNode[];
-      timerTime: number;
-    }
-  | {
-      type: 'question:answer';
+      type: 'question:display-answer';
       nodes: AnswerNode[];
     };
 
@@ -79,7 +74,10 @@ export type Message =
   | {
       type: 'patch';
       patch: Delta;
-    };
+    }
+  | {
+    type: 'khil'
+  };
 
 export type Action = z.infer<typeof actionSchema>;
 export type ActionType = Action['type'];
@@ -91,10 +89,12 @@ type ActionHandlers = {
   [K in ActionType]: (
     event: SingleSocketEvent,
     data: Extract<Action, { type: K }>
-  ) => Promise<void>;
+  ) => Promise<void> | void;
 };
 
 const actionSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('ping') }),
+  z.object({ type: z.literal('request-action') }),
   z.object({
     type: z.literal('host:start'),
   }),
@@ -102,6 +102,30 @@ const actionSchema = z.discriminatedUnion('type', [
     type: z.literal('host:kick'),
     player: z.string(),
   }),
+  z.object({
+    type: z.literal('host:set-score'),
+    player: z.string(),
+    score: z.number(),
+  }),
+  z.object({
+    type: z.literal('host:choose-question'),
+    category: z.number(),
+    question: z.number(),
+  }),
+  z.object({
+    type: z.literal('host:choose-round'),
+    round: z.number(),
+  }),
+  z.object({
+    type: z.literal('request-answer'),
+  }),
+  z.object({
+    type: z.literal('host:accept-answer'),
+    correct: z.boolean(),
+  }),
+  z.object({
+    type: z.literal('host:continue'),
+  })
 ]);
 
 type FullState = {
@@ -109,10 +133,20 @@ type FullState = {
   host: HostState;
 }
 
+const differ = createDiffer({
+  objectHash: function(obj: any, index: number) {
+    // try to find an id property, otherwise just use the index in the array
+    return obj?.user?.id || obj?.name || obj?.id || obj?._id || '$$index:' + index;
+  }
+});
+
 export class MiniSigameLobby extends SingleReplica {
   public maxUsers: number = 8;
 
-  private initialized = false;
+  private initializedAt: number | undefined = undefined;
+
+  private readonly questionDisplayDelay = 1000 * 2;
+  private readonly questionTimer = 1000 * 30;
 
   private manifest!: StoredManifest;
 
@@ -120,6 +154,8 @@ export class MiniSigameLobby extends SingleReplica {
   private previousLobbyState!: LobbyState;
 
   private hostState!: HostState;
+
+  private currentQuestion?: StoredManifest['rounds'][number]['themes'][number]['questions'][number];
 
   private readonly kv: KVNamespace;
 
@@ -139,7 +175,7 @@ export class MiniSigameLobby extends SingleReplica {
   }
 
   private readonly handlers: Partial<ActionHandlers> = {
-    'host:kick': async (event, data) => {
+    'host:kick': (event, data) => {
       if (!this.isHost(event.rid)) {
         return;
       }
@@ -154,6 +190,163 @@ export class MiniSigameLobby extends SingleReplica {
 
       this.lobbyState.players.splice(index, 1);
       this.broadcastPatch();
+    },
+    'host:start': (event) => {
+      if (!this.isHost(event.rid) || this.lobbyState.game.type !== 'not-started') {
+        return;
+      }
+
+      this.lobbyState.game = {
+        type: 'choose-question',
+      };
+      this.broadcastPatch();
+    },
+    "host:set-score": (event, data) => {
+      if (!this.isHost(event.rid)) {
+        return;
+      }
+
+      const player = this.lobbyState.players.find((player) => player.user.id === data.player);
+
+      if (!player) {
+        return;
+      }
+
+      player.score = data.score;
+      this.broadcastPatch();
+    },
+    'host:continue': (event) => {
+      if (!this.isHost(event.rid)) {
+        return;
+      }
+
+      if (this.lobbyState.game.type === 'question' && this.currentQuestion) {
+        this.lobbyState.game = {
+          type: 'question:display-answer',
+          nodes: this.currentQuestion.answer,
+        };
+        this.broadcastPatch();
+        return;
+      }
+
+      if (this.lobbyState.game.type === 'question:display-answer' && this.currentQuestion) {
+        this.currentQuestion = undefined;
+        this.lobbyState.game = {
+          type: 'choose-question',
+        };
+        this.broadcastPatch();
+      }
+
+    },
+    'host:choose-question': (event, data) => {
+      if (!this.isHost(event.rid) || this.lobbyState.game.type !== 'choose-question') {
+        return;
+      }
+      
+      const categories = this.lobbyState.round.categories;
+      if (data.category < 0 || data.category >= categories.length) {
+        return;
+      }
+
+      const questions = categories[data.category].questions;
+      if (data.question < 0 || data.question >= questions.length) {
+        return;
+      }
+
+      const selectedQuestion = questions[data.question];
+      this.currentQuestion = this.manifest
+        .rounds[this.lobbyState.round.number - 1]
+        ?.themes[data.category]
+        ?.questions[data.question];
+      if (!selectedQuestion || !selectedQuestion) {
+        return;
+      }
+      
+      questions[data.question] = null;
+
+      this.lobbyState.game = {
+        type: 'question',
+        nodes: this.currentQuestion.scenario,
+        timerStarts: Date.now() + this.questionDisplayDelay,
+        timerEnds: Date.now() + this.questionDisplayDelay + this.questionTimer,
+        alreadyAnswered: [],
+        price: selectedQuestion.price,
+      };
+      this.broadcastPatch();
+
+      this.hostState.answer = this.currentQuestion.answer
+        .filter((node): node is string => !!node && typeof node !== 'object')
+        .map((node) => node.toString())
+        .join(', ');
+
+      this.boradcastHostState();
+    },
+    'host:choose-round': (event, data) => {
+      if (!this.isHost(event.rid) || this.lobbyState.game.type !== 'choose-question' || data.round < 0 || data.round >= this.manifest.rounds.length) {
+        return;
+      }
+
+      this.lobbyState.round = this.getRound(data.round);
+      this.broadcastPatch();
+    },
+    "request-action": (event) => {
+      if (this.lobbyState.game.type !== 'question'
+        || !!this.lobbyState.game.answeringPlayer
+        || this.lobbyState.game.alreadyAnswered.includes(event.rid)
+        || Date.now() < this.lobbyState.game.timerStarts
+      ) {
+        this.whisper(event.rid, { type: 'khil' });
+        return;
+      }
+
+      const player = this.lobbyState.players.find((player) => player.user.id === event.rid);
+
+      if (!player) {
+        return;
+      }
+
+      this.lobbyState.game.answeringPlayer = player.user.id;
+      this.lobbyState.game.timerTime = Date.now();
+
+      this.broadcastPatch();
+    },
+    "host:accept-answer": (event, data) => {
+      if (!this.isHost(event.rid) || this.lobbyState.game.type !== 'question' || !this.lobbyState.game.answeringPlayer) {
+        return;
+      }
+
+      const game = this.lobbyState.game;
+
+      const player = this.lobbyState.players.find((player) => player.user.id === game.answeringPlayer);
+
+      if (!player) {
+        return;
+      }
+
+      this.lobbyState.game.alreadyAnswered.push(player.user.id);
+      this.lobbyState.game.answeringPlayer = undefined;
+
+      if (data.correct) {
+        player.score += this.lobbyState.game.price;
+      }
+      else {
+        player.score -= this.lobbyState.game.price;
+
+        this.lobbyState.game.timerTime = undefined;
+
+        const pauseTime = this.lobbyState.game.timerTime;
+
+        if (pauseTime) {
+          const timerOffset = Date.now() - pauseTime;
+          this.lobbyState.game.timerStarts += timerOffset;
+          this.lobbyState.game.timerEnds += timerOffset;
+        } else {
+          this.lobbyState.game.timerStarts = Date.now();
+          this.lobbyState.game.timerEnds = Date.now() + 1000;
+        }
+      }
+
+      this.broadcastPatch();
     }
   };
 
@@ -163,7 +356,7 @@ export class MiniSigameLobby extends SingleReplica {
 
   async receive(req: Request) {
     return await handleResponse(req, () => {
-      if (!this.initialized) {
+      if (!this.initializedAt) {
         throw new Error('lobby not found');
       }
 
@@ -185,7 +378,7 @@ export class MiniSigameLobby extends SingleReplica {
 
       this.hostState = loadedState.host;
       
-      this.initialized = true;
+      this.initializedAt = Date.now();
       
       console.log('recovered lobby', this.uid);
       return;
@@ -197,23 +390,14 @@ export class MiniSigameLobby extends SingleReplica {
       return;
     }
 
-    this.initialized = true;
+    this.initializedAt = Date.now();
     this.manifest = pack;
     this.lobbyState = {
       pack: {
         name: pack.name,
         key: pack.packKey,
       },
-      round: {
-        number: 1,
-        name: pack.rounds[0].name,
-        categories: pack.rounds[0].themes.map((category) => ({
-          name: category.name,
-          questions: category.questions.map((question) => ({
-            price: question.price * 100,
-          })),
-        })),
-      },
+      round: this.getRound(0),
       game: {
         type: 'not-started',
       },
@@ -287,6 +471,20 @@ export class MiniSigameLobby extends SingleReplica {
     return this.handlers[message.data.type]?.(state, message.data as never);
   }
 
+  private getRound(index: number) {
+    const round = this.manifest.rounds[index];
+    return {
+      number: index + 1,
+      name: round.name,
+      categories: round.themes.map((category) => ({
+        name: category.name,
+        questions: category.questions.map((question) => ({
+          price: question.price * 100,
+        })),
+      })),
+    }
+  }
+
   private getLobbyStateMessage(): Message {
     return <Message>{
       type: 'lobby',
@@ -302,7 +500,7 @@ export class MiniSigameLobby extends SingleReplica {
   }
 
   private broadcastPatch() {
-    const patch = diff(this.previousLobbyState, this.lobbyState);
+    const patch = differ.diff(this.previousLobbyState, this.lobbyState);
     this.previousLobbyState = structuredClone(this.lobbyState);
 
     if (!patch) return;
@@ -365,14 +563,12 @@ const avatars = [
   '👹',
   '👿',
   '🤠',
-  '🤓',
   '💩',
   '🐒',
   '🐸',
   '🤯',
   '😍',
   '🥶',
-  '🖕',
   '🦧',
 ];
 function pickRandomAvatar() {
