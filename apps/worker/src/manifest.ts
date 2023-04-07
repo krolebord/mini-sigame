@@ -17,6 +17,20 @@ const atomNodeSchema = z
   .union([primitiveSchema, atomMediaSchema])
   .transform((atom) => [atom]);
 
+const questionSchema = z.object({
+  meta_price: numeric(),
+  right: z.object({
+    answer: z
+      .union([atomNodeSchema, z.array(atomNodeSchema)])
+      .transform((node) => node.flatMap((x) => x)),
+  }),
+  scenario: z.object({
+    atom: z
+      .union([atomNodeSchema, z.array(atomNodeSchema)])
+      .transform((node) => node.flatMap((x) => x)),
+  }),
+})
+
 const normalRoundSchema = z
   .object({
     meta_name: z.string(),
@@ -26,21 +40,10 @@ const normalRoundSchema = z
         z.object({
           meta_name: z.string(),
           questions: z.object({
-            question: z.array(
-              z.object({
-                meta_price: numeric(),
-                right: z.object({
-                  answer: z
-                    .union([atomNodeSchema, z.array(atomNodeSchema)])
-                    .transform((node) => node.flatMap((x) => x)),
-                }),
-                scenario: z.object({
-                  atom: z
-                    .union([atomNodeSchema, z.array(atomNodeSchema)])
-                    .transform((node) => node.flatMap((x) => x)),
-                }),
-              })
-            ),
+            question: z.union([
+              z.array(questionSchema),
+              questionSchema.transform(x => [x]),
+            ]),
           }),
         })
       ),

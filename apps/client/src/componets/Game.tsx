@@ -108,7 +108,7 @@ export function GameProvider(props: GameProviderProps) {
 
     const pingInterval = setInterval(() => {
       dispatch({ type: 'ping' })
-    }, 3000);
+    }, 7000);
 
     socket.addEventListener('message', handleMessage);
     socket.addEventListener('error', handleError);

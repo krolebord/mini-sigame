@@ -1,0 +1,42 @@
+diff --git a/dist/jsondiffpatch.esm.js b/dist/jsondiffpatch.esm.js
+index e60696c2cf62acb3e6d0b7d19ac3ebf642bfc214..c6ff2bb867715b0ad4e324085d9421cb4fd67339 100644
+--- a/dist/jsondiffpatch.esm.js
++++ b/dist/jsondiffpatch.esm.js
+@@ -1,5 +1,4 @@
+ import dmp from 'diff-match-patch';
+-import chalk from 'chalk';
+ 
+ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+   return typeof obj;
+@@ -2429,24 +2428,14 @@ var jsonpatch = Object.freeze({
+ 	log: log
+ });
+ 
+-function chalkColor(name) {
+-  return chalk && chalk[name] || function () {
+-    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+-      args[_key] = arguments[_key];
+-    }
+-
+-    return args;
+-  };
+-}
+-
+ var colors = {
+-  added: chalkColor('green'),
+-  deleted: chalkColor('red'),
+-  movedestination: chalkColor('gray'),
+-  moved: chalkColor('yellow'),
+-  unchanged: chalkColor('gray'),
+-  error: chalkColor('white.bgRed'),
+-  textDiffLine: chalkColor('gray')
++  added: '',
++  deleted: '',
++  movedestination:'',
++  moved: '',
++  unchanged: '',
++  error: '',
++  textDiffLine: ''
+ };
+ 
+ var ConsoleFormatter = function (_BaseFormatter) {
