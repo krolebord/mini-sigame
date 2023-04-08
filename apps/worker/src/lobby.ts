@@ -1,5 +1,6 @@
 import { SingleReplica, SingleSocketEvent } from '@tic/dog';
 import { diff, Delta, create as createDiffer } from 'jsondiffpatch';
+import { Delta, create as createDiffer } from 'jsondiffpatch';
 import { z } from 'zod';
 import { Env } from './env';
 import { handleResponse } from './handlers';
@@ -25,6 +26,7 @@ export type GameState =
     }
   | {
       type: 'question';
+      category: string;
       nodes: QuestionNode[];
       price: number;
       timerStarts: number;
@@ -81,9 +83,6 @@ export type Message =
 
 export type Action = z.infer<typeof actionSchema>;
 export type ActionType = Action['type'];
-
-export type HostActionType = Extract<ActionType, `host:${string}`>;
-export type HostAction = Extract<Action, { type: HostActionType }>;
 
 type ActionHandlers = {
   [K in ActionType]: (
@@ -250,12 +249,12 @@ export class MiniSigameLobby extends SingleReplica {
         return;
       }
 
-      const questions = categories[data.category].questions;
-      if (data.question < 0 || data.question >= questions.length) {
+      const category = categories[data.category];
+      if (data.question < 0 || data.question >= category.questions.length) {
         return;
       }
 
-      const selectedQuestion = questions[data.question];
+      const selectedQuestion = category.questions[data.question];
       this.currentQuestion = this.manifest
         .rounds[this.lobbyState.round.number - 1]
         ?.themes[data.category]
@@ -264,10 +263,11 @@ export class MiniSigameLobby extends SingleReplica {
         return;
       }
       
-      questions[data.question] = null;
+      category.questions[data.question] = null;
 
       this.lobbyState.game = {
         type: 'question',
+        category: category.name,
         nodes: this.currentQuestion.scenario,
         timerStarts: Date.now() + this.questionDisplayDelay,
         timerEnds: Date.now() + this.questionDisplayDelay + this.questionTimer,
