@@ -75,7 +75,6 @@ function NodeDisplay(props: { node: QuestionNode | AnswerNode }) {
         {(node) => <VideoNode filename={node().filename} />}
       </Match>
     </Switch>
-    
   );
 }
 
@@ -102,7 +101,9 @@ function ImageNode(props: { filename: string }) {
 
   return (
     <Show when={url()} fallback={<p>Image not found</p>}>
-      {(url) => <img class="max-h-[60vh]" src={url()} alt={"SBU COMING FOR YOU."} />}
+      {(url) => (
+        <img class="max-h-[60vh]" src={url()} alt={'SBU COMING FOR YOU.'} />
+      )}
     </Show>
   );
 }
@@ -129,7 +130,7 @@ function AudioNode(props: { filename: string }) {
             setPreferences({ volume: e.currentTarget.volume })
           }
         >
-          <source src={url()} title={"SBU COMING FOR YOU."} />
+          <source src={url()} title={'SBU COMING FOR YOU.'} />
         </audio>
       )}
     </Show>
@@ -159,7 +160,7 @@ function VideoNode(props: { filename: string }) {
             setPreferences({ volume: e.currentTarget.volume })
           }
         >
-          <source src={url()} title={"SBU COMING FOR YOU."} />
+          <source src={url()} title={'SBU COMING FOR YOU.'} />
         </video>
       )}
     </Show>
@@ -227,7 +228,9 @@ function Players() {
           </p>
           <Show
             when={isHost()}
-            fallback={<p class="text-blue-900 dark:text-white">{player.score}</p>}
+            fallback={
+              <p class="text-blue-900 dark:text-white">{player.score}</p>
+            }
           >
             <input
               type="number"
@@ -252,7 +255,13 @@ function Players() {
 
 function QuestionBoard() {
   const store = useGameStore();
-
+  const isHost = useIsHost();
+  const acceptAnswer = (correct: boolean) => {
+    store.dispatch({
+      type: 'host:accept-answer',
+      correct,
+    });
+  };
   return (
     <Show
       when={
@@ -282,17 +291,41 @@ function QuestionBoard() {
               </Show>
             )}
           </Show>
-          
+
           <For each={gameState().nodes}>
             {(node) => <NodeDisplay node={node} />}
           </For>
           <Show
-            when={ store.lobbyState.game.type === 'question' && store.hostState?.answer}
-            >
-              {
-                (answer) => <p>Answer: <span class="text-transparent bg-slate-200 hover:text-inherit rounded-md dark:bg-gray-800 px-1">{answer()}</span></p>
-              }
-            </Show>
+            when={
+              store.lobbyState.game.type === 'question' &&
+              store.hostState?.answer
+            }
+          >
+            {(answer) => (
+              <p>
+                Answer:{' '}
+                <span class="text-transparent bg-slate-200 hover:text-inherit rounded-md dark:bg-gray-800 px-1">
+                  {answer()}
+                </span>
+              </p>
+            )}
+          </Show>
+          <Show
+            when={
+              isHost() &&
+              store.lobbyState.game.type === 'question' &&
+              !!store.lobbyState.game.answeringPlayer
+            }
+          >
+            <div class="flex flex-row gap-4">
+              <Button variant="default" onclick={() => acceptAnswer(true)}>
+                Accept
+              </Button>
+              <Button variant="destructive" onclick={() => acceptAnswer(false)}>
+                Reject
+              </Button>
+            </div>
+          </Show>
         </div>
       )}
     </Show>
@@ -384,14 +417,6 @@ function HostActions() {
     });
   };
 
-  const acceptAnswer = (correct: boolean) => {
-    store.dispatch({
-      type: 'host:accept-answer',
-      correct,
-    });
-  };
-
-  
   const skipRound = () => {
     store.dispatch({
       type: 'host:choose-round',
@@ -408,22 +433,7 @@ function HostActions() {
         >
           <Button onClick={startGame}>Start game</Button>
         </Show>
-        
 
-        <Show
-          when={
-            store.lobbyState.game.type === 'question' &&
-            !!store.lobbyState.game.answeringPlayer
-          }
-        >
-          <p class="font-semibold">Anser:</p>
-          <Button variant="default" onclick={() => acceptAnswer(true)}>
-            Accept
-          </Button>
-          <Button variant="destructive" onclick={() => acceptAnswer(false)}>
-            Reject
-          </Button>
-        </Show>
         <Show when={store.lobbyState.game.type === 'choose-question'}>
           <Button onclick={skipRound}>Next round</Button>
         </Show>
@@ -437,17 +447,16 @@ function Game() {
 
   return (
     <>
-      
       <div class="flex flex-row w-full px-3 gap-4">
         <Host />
-        <div class="flex flex-col w-full justify-center  gap-10">
+        <div class="flex flex-col w-full justify-center  gap-5">
           <div class="flex-[3_3_0%]min-h-[60vh] justify-center flex flex-col">
             <RoundHeader />
             <GameBoard />
           </div>
           <div class="flex justify-center gap-4 players">
-              <Players />
-            </div>
+            <Players />
+          </div>
         </div>
       </div>
     </>
