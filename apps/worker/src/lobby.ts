@@ -18,26 +18,26 @@ export type HostState = {
 export type GameStateType = GameState['type'];
 export type GameState =
   | {
-      type: 'not-started';
-    }
+    type: 'not-started';
+  }
   | {
-      type: 'choose-question';
-    }
+    type: 'choose-question';
+  }
   | {
-      type: 'question';
-      category: string;
-      nodes: QuestionNode[];
-      price: number;
-      timerStarts: number;
-      timerTime?: number;
-      timerEnds: number;
-      answeringPlayer?: string;
-      alreadyAnswered: string[];
-    }
+    type: 'question';
+    category: string;
+    nodes: QuestionNode[];
+    price: number;
+    timerStarts: number;
+    timerTime?: number;
+    timerEnds: number;
+    answeringPlayer?: string;
+    alreadyAnswered: string[];
+  }
   | {
-      type: 'question:display-answer';
-      nodes: AnswerNode[];
-    };
+    type: 'question:display-answer';
+    nodes: AnswerNode[];
+  };
 
 export type LobbyState = {
   pack: {
@@ -65,20 +65,33 @@ export type LobbyState = {
 
 export type Message =
   | {
-      type: 'lobby';
-      state: LobbyState;
-    }
+    type: 'lobby';
+    state: LobbyState;
+  }
   | {
-      type: 'host';
-      state: HostState;
-    }
+    type: 'host';
+    state: HostState;
+  }
   | {
-      type: 'patch';
-      patch: Delta;
-    }
+    type: 'patch';
+    patch: Delta;
+  }
+  | {
+    type: 'notification';
+    options: NotificationOptions;
+  }
   | {
     type: 'khil'
   };
+
+export type NotificationOptions = {
+  message: string;
+  position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'
+} & (
+    | { type: 'success' }
+    | { type: 'error' }
+    | { type: 'info', icon?: string }
+  )
 
 export type Action = z.infer<typeof actionSchema>;
 export type ActionType = Action['type'];
@@ -132,7 +145,7 @@ type FullState = {
 }
 
 const differ = createDiffer({
-  objectHash: function(obj: any, index: number) {
+  objectHash: function (obj: any, index: number) {
     // try to find an id property, otherwise just use the index in the array
     return obj?.user?.id || obj?.name || obj?.id || obj?._id || '$$index:' + index;
   }
@@ -242,7 +255,7 @@ export class MiniSigameLobby extends SingleReplica {
       if (!this.isHost(event.rid) || this.lobbyState.game.type !== 'choose-question') {
         return;
       }
-      
+
       const categories = this.lobbyState.round.categories;
       if (data.category < 0 || data.category >= categories.length) {
         return;
@@ -261,7 +274,7 @@ export class MiniSigameLobby extends SingleReplica {
       if (!selectedQuestion || !selectedQuestion) {
         return;
       }
-      
+
       category.questions[data.question] = null;
 
       this.lobbyState.game = {
@@ -332,6 +345,14 @@ export class MiniSigameLobby extends SingleReplica {
 
       if (data.correct) {
         player.score += this.lobbyState.game.price;
+
+        this.broadcastNotification({
+          type: 'success',
+          message: `Correct! ${player.user.id} gets +${this.lobbyState.game.price}!`,
+        });
+
+        this.broadcastPatch();
+        this.continueGame();
       }
       else {
         player.score -= this.lobbyState.game.price;
@@ -348,9 +369,14 @@ export class MiniSigameLobby extends SingleReplica {
           this.lobbyState.game.timerStarts = Date.now();
           this.lobbyState.game.timerEnds = Date.now() + 1000;
         }
-      }
 
-      this.broadcastPatch();
+        this.broadcastNotification({
+          type: 'success',
+          message: `=( ${player.user.id} gets -${this.lobbyState.game.price}!`,
+        });
+
+        this.broadcastPatch();
+      }
     }
   };
 
@@ -381,9 +407,9 @@ export class MiniSigameLobby extends SingleReplica {
       this.previousLobbyState = structuredClone(this.lobbyState);
 
       this.hostState = loadedState.host;
-      
+
       this.initializedAt = Date.now();
-      
+
       console.log('recovered lobby', this.uid);
       return;
     }
@@ -513,6 +539,15 @@ export class MiniSigameLobby extends SingleReplica {
       JSON.stringify(<Message>{
         type: 'patch',
         patch,
+      })
+    );
+  }
+
+  private broadcastNotification(options: NotificationOptions) {
+    this.broadcast(
+      JSON.stringify(<Message>{
+        type: 'notification',
+        options
       })
     );
   }
