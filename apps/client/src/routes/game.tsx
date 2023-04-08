@@ -1,12 +1,11 @@
 import { useParams } from '@solidjs/router';
 import { AnswerNode, QuestionNode } from '@tic/worker/src/manifest';
-import { Accessor, createEffect, createMemo, For, Match, mergeProps, onCleanup, Show, Switch } from 'solid-js';
+import { Accessor, createEffect, createMemo, For, Match, onCleanup, Show, Switch } from 'solid-js';
 import toast from 'solid-toast';
 import { Button } from '../componets/Button';
 import { GameProvider, useGameStore, useInvalidatePack, useIsHost } from '../componets/GameProvider';
 import { ProgressLine, TimerProgressLine } from '../componets/TimerLine';
-import { useMediaSettings } from '../hooks/media-settings';
-import { useUsername } from '../hooks/username';
+import { usePreferences, useUsername } from '../hooks/use-preferences'
 import { normalizeFilename } from '../utils/parse-pack';
 
 function PlayerAvatar(props: { avatar: string, isAnswering?: boolean, isAnswered?: boolean }) {  
@@ -74,20 +73,20 @@ function ImageNode(props: { filename: string }) {
 
 function AudioNode(props: { filename: string }) {
   const url = createGameAssetUrl(() => props.filename);
-  const [settings, setSettings] = useMediaSettings();
+  const [preferences, setPreferences] = usePreferences();
 
   let audio: HTMLAudioElement | undefined;
 
   createEffect(() => {
     if (!audio) return;
-    audio.volume = settings.volume;
+    audio.volume = preferences.volume;
   });
 
   return <Show
     when={url()}
     fallback={<p>Image not found</p>}
   >
-    {url => <audio ref={audio} controls autoplay onvolumechange={e => setSettings({ volume: e.currentTarget.volume })}>
+    {url => <audio ref={audio} controls autoplay onvolumechange={e => setPreferences({ volume: e.currentTarget.volume })}>
       <source src={url()} title={props.filename} />
     </audio>}
   </Show>;
@@ -95,13 +94,13 @@ function AudioNode(props: { filename: string }) {
 
 function VideoNode(props: { filename: string }) {
   const url = createGameAssetUrl(() => props.filename);
-  const [settings, setSettings] = useMediaSettings();
+  const [preferences, setPreferences] = usePreferences();
 
   let video: HTMLVideoElement | undefined;
 
   createEffect(() => {
     if (!video) return;
-    video.volume = settings.volume;
+    video.volume = preferences.volume;
   });
 
   return <Show
@@ -112,7 +111,7 @@ function VideoNode(props: { filename: string }) {
       ref={video}
       class="max-h-[60vh]"
       controls autoplay
-      onvolumechange={e => setSettings({ volume: e.currentTarget.volume })}
+      onvolumechange={e => setPreferences({ volume: e.currentTarget.volume })}
     >
       <source src={url()} title={props.filename} />
     </video>}

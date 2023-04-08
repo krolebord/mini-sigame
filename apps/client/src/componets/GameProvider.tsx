@@ -6,7 +6,7 @@ import { createStore, produce, reconcile } from 'solid-js/store'
 import toast from 'solid-toast';
 import { config } from '../config';
 import { useOnKey } from '../hooks/use-on-key';
-import { useUsername } from '../hooks/username';
+import { useUsername } from '../hooks/use-preferences';
 import { fetchPack, invalidatePackCache } from '../utils/fetch-pack';
 
 export type ExtractState<T extends GameState> = Extract<GameState, { type: T }>;

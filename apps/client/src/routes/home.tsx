@@ -2,7 +2,7 @@ import { useNavigate } from '@solidjs/router';
 import { createMutation } from '@tanstack/solid-query';
 import { toast } from 'solid-toast';
 import { Button } from '../componets/Button';
-import { useUsername } from '../hooks/username';
+import { useUsername } from '../hooks/use-preferences';
 import { parsePack } from '../utils/parse-pack';
 import { uploadPack } from '../utils/upload-pack';
 

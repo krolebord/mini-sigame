@@ -8,7 +8,8 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import { GameRoute } from './routes/Game';
 import { Toaster } from 'solid-toast';
-import { useUsername } from './hooks/username';
+import { useUsername } from './hooks/use-preferences';
+import { syncTheme } from './hooks/sync-theme';
 
 export function App() {
   const queryClient = new QueryClient();
@@ -44,5 +45,7 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
     'Root element not found. Did you forget to add it to your index.html? Or maybe the id attribute got mispelled?',
   );
 }
+
+syncTheme();
 
 render(() => <App />, root!);
