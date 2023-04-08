@@ -1,14 +1,20 @@
-import { createStore } from "solid-js/store";
-import { z } from "zod";
+import { createStore } from 'solid-js/store';
+import { z } from 'zod';
 
-export function createPersistedStore<TSchema extends z.ZodSchema>(key: string, schema: TSchema, defaultValue: z.infer<TSchema>) {
+export function createPersistedStore<TSchema extends z.ZodSchema>(
+  key: string,
+  schema: TSchema,
+  defaultValue: z.infer<TSchema>
+) {
   const storedValue = getStoredValue(key, schema);
 
   if (!storedValue) {
     localStorage.setItem(key, JSON.stringify(defaultValue));
   }
 
-  const [value, setValue] = createStore<z.infer<TSchema>>(storedValue ?? defaultValue);
+  const [value, setValue] = createStore<z.infer<TSchema>>(
+    storedValue ?? defaultValue
+  );
 
   function setStoredValue(newValue: z.infer<TSchema>) {
     setValue(newValue);
@@ -18,7 +24,10 @@ export function createPersistedStore<TSchema extends z.ZodSchema>(key: string, s
   return [value, setStoredValue as typeof setValue] as const;
 }
 
-function getStoredValue<TSchema extends z.ZodSchema>(key: string, schema: TSchema): z.infer<TSchema> | null {
+function getStoredValue<TSchema extends z.ZodSchema>(
+  key: string,
+  schema: TSchema
+): z.infer<TSchema> | null {
   let storedJson = localStorage.getItem(key);
 
   if (!storedJson) {
@@ -27,8 +36,7 @@ function getStoredValue<TSchema extends z.ZodSchema>(key: string, schema: TSchem
 
   try {
     return schema.parse(JSON.parse(storedJson));
-  }
-  catch {
+  } catch {
     return null;
   }
 }

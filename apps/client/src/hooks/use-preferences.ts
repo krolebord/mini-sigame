@@ -1,8 +1,8 @@
-import { z } from "zod";
-import { createAnonUsername } from "../utils/anon-username";
-import { createPersistedStore } from "./create-persisted-store";
+import { z } from 'zod';
+import { createAnonUsername } from '../utils/anon-username';
+import { createPersistedStore } from './create-persisted-store';
 
-const key = "preferences";
+const key = 'preferences';
 
 const schema = z.object({
   username: z.string(),
@@ -10,15 +10,11 @@ const schema = z.object({
   theme: z.enum(['light', 'dark', 'system']),
 });
 
-const [preferences, setPrefereces] = createPersistedStore(
-  key,
-  schema,
-  {
-    username: createAnonUsername(),
-    volume: 0.5,
-    theme: 'system',
-  }
-);
+const [preferences, setPrefereces] = createPersistedStore(key, schema, {
+  username: createAnonUsername(),
+  volume: 0.5,
+  theme: 'system',
+});
 
 export function usePreferences() {
   return [preferences, setPrefereces] as const;

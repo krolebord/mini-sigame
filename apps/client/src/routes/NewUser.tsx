@@ -18,12 +18,14 @@ export function NewUserRoute() {
           onInput={(e) => setPreferences({ username: e.currentTarget.value })}
         />
         <div>
-          <label for="theme-selector" >Theme: </label>
+          <label for="theme-selector">Theme: </label>
           <select
             id="theme-selector"
             name="theme"
             value={preferences.theme}
-            oninput={e => setPreferences({ theme: e.currentTarget.value as never })}
+            oninput={(e) =>
+              setPreferences({ theme: e.currentTarget.value as never })
+            }
           >
             <option value="light">Light</option>
             <option value="dark">Dark</option>
@@ -32,11 +34,7 @@ export function NewUserRoute() {
         </div>
         <Show
           when={preferences.username.length > 3}
-          fallback={
-            <Button disabled>
-              Continue
-            </Button>
-          }
+          fallback={<Button disabled>Continue</Button>}
         >
           <Link class="rounded-md border border-slate-500 px-2" href="/home">
             Continue

@@ -22,7 +22,9 @@ export function HomeRoute() {
     },
   });
 
-  async function handleNewGameSubmit(e: Event & { currentTarget: HTMLFormElement }) {
+  async function handleNewGameSubmit(
+    e: Event & { currentTarget: HTMLFormElement }
+  ) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const parseResult = await parsePack(formData);
@@ -50,7 +52,11 @@ export function HomeRoute() {
         <p>Hello, {username()}</p>
       </div>
       <form method="post" onsubmit={handleNewGameSubmit}>
-        <input type="file" name="pack" disabled={packUploadMutation.isLoading} />
+        <input
+          type="file"
+          name="pack"
+          disabled={packUploadMutation.isLoading}
+        />
         <Button type="submit" disabled={packUploadMutation.isLoading}>
           Create new game
         </Button>
