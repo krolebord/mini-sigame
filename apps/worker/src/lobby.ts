@@ -1,5 +1,5 @@
 import { SingleReplica, SingleSocketEvent } from '@tic/dog';
-import { diff, Delta, create as createDiffer } from 'jsondiffpatch';
+import { Delta, create as createDiffer } from 'jsondiffpatch';
 import { z } from 'zod';
 import { Env } from './env';
 import { handleResponse } from './handlers';
@@ -18,25 +18,26 @@ export type HostState = {
 export type GameStateType = GameState['type'];
 export type GameState =
   | {
-      type: 'not-started';
-    }
+    type: 'not-started';
+  }
   | {
-      type: 'choose-question';
-    }
+    type: 'choose-question';
+  }
   | {
-      type: 'question';
-      nodes: QuestionNode[];
-      price: number;
-      timerStarts: number;
-      timerTime?: number;
-      timerEnds: number;
-      answeringPlayer?: string;
-      alreadyAnswered: string[];
-    }
+    type: 'question';
+    category: string;
+    nodes: QuestionNode[];
+    price: number;
+    timerStarts: number;
+    timerTime?: number;
+    timerEnds: number;
+    answeringPlayer?: string;
+    alreadyAnswered: string[];
+  }
   | {
-      type: 'question:display-answer';
-      nodes: AnswerNode[];
-    };
+    type: 'question:display-answer';
+    nodes: AnswerNode[];
+  };
 
 export type LobbyState = {
   pack: {
@@ -64,26 +65,36 @@ export type LobbyState = {
 
 export type Message =
   | {
-      type: 'lobby';
-      state: LobbyState;
-    }
+    type: 'lobby';
+    state: LobbyState;
+  }
   | {
-      type: 'host';
-      state: HostState;
-    }
+    type: 'host';
+    state: HostState;
+  }
   | {
-      type: 'patch';
-      patch: Delta;
-    }
+    type: 'patch';
+    patch: Delta;
+  }
+  | {
+    type: 'notification';
+    options: NotificationOptions;
+  }
   | {
     type: 'khil'
   };
 
+export type NotificationOptions = {
+  message: string;
+  position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'
+} & (
+    | { type: 'success' }
+    | { type: 'error' }
+    | { type: 'info', icon?: string }
+  )
+
 export type Action = z.infer<typeof actionSchema>;
 export type ActionType = Action['type'];
-
-export type HostActionType = Extract<ActionType, `host:${string}`>;
-export type HostAction = Extract<Action, { type: HostActionType }>;
 
 type ActionHandlers = {
   [K in ActionType]: (
@@ -134,7 +145,7 @@ type FullState = {
 }
 
 const differ = createDiffer({
-  objectHash: function(obj: any, index: number) {
+  objectHash: function (obj: any, index: number) {
     // try to find an id property, otherwise just use the index in the array
     return obj?.user?.id || obj?.name || obj?.id || obj?._id || '$$index:' + index;
   }
@@ -145,8 +156,10 @@ export class MiniSigameLobby extends SingleReplica {
 
   private initializedAt: number | undefined = undefined;
 
-  private readonly questionDisplayDelay = 1000 * 2;
+  private readonly questionDisplayDelay = 1000 * 5;
   private readonly questionTimer = 1000 * 30;
+  private readonly showAnswerDelay = 1000 * 4;
+  private readonly banDuration = 1000 * 2.5;
 
   private manifest!: StoredManifest;
 
@@ -156,6 +169,10 @@ export class MiniSigameLobby extends SingleReplica {
   private hostState!: HostState;
 
   private currentQuestion?: StoredManifest['rounds'][number]['themes'][number]['questions'][number];
+
+  private readonly lastRequestActionByUser = new Map<string, number>();
+
+  private currentTransitionId: number | undefined = undefined;
 
   private readonly kv: KVNamespace;
 
@@ -220,40 +237,24 @@ export class MiniSigameLobby extends SingleReplica {
         return;
       }
 
-      if (this.lobbyState.game.type === 'question' && this.currentQuestion) {
-        this.lobbyState.game = {
-          type: 'question:display-answer',
-          nodes: this.currentQuestion.answer,
-        };
-        this.broadcastPatch();
-        return;
-      }
-
-      if (this.lobbyState.game.type === 'question:display-answer' && this.currentQuestion) {
-        this.currentQuestion = undefined;
-        this.lobbyState.game = {
-          type: 'choose-question',
-        };
-        this.broadcastPatch();
-      }
-
+      this.continueGame();
     },
     'host:choose-question': (event, data) => {
       if (!this.isHost(event.rid) || this.lobbyState.game.type !== 'choose-question') {
         return;
       }
-      
+
       const categories = this.lobbyState.round.categories;
       if (data.category < 0 || data.category >= categories.length) {
         return;
       }
 
-      const questions = categories[data.category].questions;
-      if (data.question < 0 || data.question >= questions.length) {
+      const category = categories[data.category];
+      if (data.question < 0 || data.question >= category.questions.length) {
         return;
       }
 
-      const selectedQuestion = questions[data.question];
+      const selectedQuestion = category.questions[data.question];
       this.currentQuestion = this.manifest
         .rounds[this.lobbyState.round.number - 1]
         ?.themes[data.category]
@@ -261,11 +262,12 @@ export class MiniSigameLobby extends SingleReplica {
       if (!selectedQuestion || !selectedQuestion) {
         return;
       }
-      
-      questions[data.question] = null;
+
+      category.questions[data.question] = null;
 
       this.lobbyState.game = {
         type: 'question',
+        category: category.name,
         nodes: this.currentQuestion.scenario,
         timerStarts: Date.now() + this.questionDisplayDelay,
         timerEnds: Date.now() + this.questionDisplayDelay + this.questionTimer,
@@ -290,11 +292,18 @@ export class MiniSigameLobby extends SingleReplica {
       this.broadcastPatch();
     },
     "request-action": (event) => {
+      const lastActivation = this.lastRequestActionByUser.get(event.rid);
+      const isBanned = lastActivation && lastActivation + this.banDuration > Date.now();
       if (this.lobbyState.game.type !== 'question'
         || !!this.lobbyState.game.answeringPlayer
         || this.lobbyState.game.alreadyAnswered.includes(event.rid)
         || Date.now() < this.lobbyState.game.timerStarts
-      ) {
+        || isBanned) 
+      {
+        if (!isBanned) {
+          this.lastRequestActionByUser.set(event.rid, Date.now());
+        }
+
         this.whisper(event.rid, { type: 'khil' });
         return;
       }
@@ -328,6 +337,15 @@ export class MiniSigameLobby extends SingleReplica {
 
       if (data.correct) {
         player.score += this.lobbyState.game.price;
+
+        this.broadcastNotification({
+          type: 'success',
+          message: `Correct! ${player.user.id} gets +${this.lobbyState.game.price}!`,
+          position: 'top-center'
+        });
+
+        this.broadcastPatch();
+        this.continueGame();
       }
       else {
         player.score -= this.lobbyState.game.price;
@@ -344,14 +362,58 @@ export class MiniSigameLobby extends SingleReplica {
           this.lobbyState.game.timerStarts = Date.now();
           this.lobbyState.game.timerEnds = Date.now() + 1000;
         }
-      }
 
-      this.broadcastPatch();
+        this.broadcastNotification({
+          type: 'success',
+          message: `=( ${player.user.id} gets -${this.lobbyState.game.price}!`,
+          position: 'top-center'
+        });
+
+        this.broadcastPatch();
+      }
     }
   };
 
   private isHost(rid: string): boolean {
     return this.manifest.host === rid;
+  }
+
+  private continueGame() {
+    this.skipTransition();
+
+    if (this.lobbyState.game.type === 'question' && this.currentQuestion) {
+      this.lobbyState.game = {
+        type: 'question:display-answer',
+        nodes: this.currentQuestion.answer,
+      };
+      this.broadcastPatch();
+      this.setTransition(this.showAnswerDelay, () => this.continueGame());
+      return;
+    }
+
+    if (this.lobbyState.game.type === 'question:display-answer' && this.currentQuestion) {
+      this.currentQuestion = undefined;
+      this.lobbyState.game = {
+        type: 'choose-question',
+      };
+      this.broadcastPatch();
+      return;
+    }
+  }
+
+  private skipTransition() {
+    if (this.currentTransitionId) {
+      clearTimeout(this.currentTransitionId);
+      this.currentTransitionId = undefined;
+    }
+  }
+
+  private setTransition(delay: number, transition: () => void) {
+    this.skipTransition();
+    this.currentTransitionId = setTimeout(() => {
+      this.currentTransitionId = undefined;
+      transition();
+    }, delay);
   }
 
   async receive(req: Request) {
@@ -377,9 +439,9 @@ export class MiniSigameLobby extends SingleReplica {
       this.previousLobbyState = structuredClone(this.lobbyState);
 
       this.hostState = loadedState.host;
-      
+
       this.initializedAt = Date.now();
-      
+
       console.log('recovered lobby', this.uid);
       return;
     }
@@ -479,7 +541,7 @@ export class MiniSigameLobby extends SingleReplica {
       categories: round.themes.map((category) => ({
         name: category.name,
         questions: category.questions.map((question) => ({
-          price: question.price * 100,
+          price: question.price,
         })),
       })),
     }
@@ -509,6 +571,15 @@ export class MiniSigameLobby extends SingleReplica {
       JSON.stringify(<Message>{
         type: 'patch',
         patch,
+      })
+    );
+  }
+
+  private broadcastNotification(options: NotificationOptions) {
+    this.broadcast(
+      JSON.stringify(<Message>{
+        type: 'notification',
+        options
       })
     );
   }
