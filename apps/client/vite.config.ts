@@ -6,13 +6,13 @@ export default defineConfig({
   plugins: [
     solidPlugin(),
     visualizer({
-      template: "treemap",
+      template: 'treemap',
       gzipSize: true,
       brotliSize: true,
-      filename: "analyze.html",
+      filename: 'analyze.html',
     }) as PluginOption,
   ],
   build: {
     target: 'esnext',
-  }
+  },
 });

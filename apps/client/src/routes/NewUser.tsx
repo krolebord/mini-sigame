@@ -2,6 +2,7 @@ import { Link } from '@solidjs/router';
 import { Show } from 'solid-js';
 import { Button } from '../componets/Button';
 import { usePreferences } from '../hooks/use-preferences';
+import { ThemeSelect } from '../componets/ThemeSelect';
 
 export function NewUserRoute() {
   const [preferences, setPreferences] = usePreferences();
@@ -18,25 +19,12 @@ export function NewUserRoute() {
           onInput={(e) => setPreferences({ username: e.currentTarget.value })}
         />
         <div>
-          <label for="theme-selector" >Theme: </label>
-          <select
-            id="theme-selector"
-            name="theme"
-            value={preferences.theme}
-            oninput={e => setPreferences({ theme: e.currentTarget.value as never })}
-          >
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="system">System</option>
-          </select>
+          <label for="theme-selector">Theme: </label>
+          <ThemeSelect />
         </div>
         <Show
           when={preferences.username.length > 3}
-          fallback={
-            <Button disabled>
-              Continue
-            </Button>
-          }
+          fallback={<Button disabled>Continue</Button>}
         >
           <Link class="rounded-md border border-slate-500 px-2" href="/home">
             Continue
