@@ -115,6 +115,17 @@ export function GameProvider(props: GameProviderProps) {
         case 'khil':
           toast.success(`Who asked?`, { icon: pickRandomAvatar() });
           break;
+        case 'notification':
+          if (message.options.type === 'success') {
+            toast.success(message.options.message, message.options);
+          }
+          else if (message.options.type === 'error') {
+            toast.error(message.options.message, message.options);
+          }
+          else {
+            toast(message.options.message, message.options);
+          }
+          break;
       }
     };
 
