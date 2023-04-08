@@ -1,4 +1,3 @@
-/* @refresh reload */
 import './index.css';
 import { render } from 'solid-js/web';
 import { Link, Route, Router, Routes } from '@solidjs/router';

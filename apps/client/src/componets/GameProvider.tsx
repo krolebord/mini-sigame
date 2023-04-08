@@ -37,17 +37,27 @@ type GameProviderProps = {
 const GameContext = createContext<ClientGameState>();
 
 export function GameProvider(props: GameProviderProps) {
+  let loadedAssets = undefined;
+  if (import.meta.hot) {
+    loadedAssets = import.meta.hot.data.assets;
+  }
+
   const packQuery = createQuery({
     queryKey: () => ['pack', props.gameKey],
     retry: 2,
     staleTime: Infinity,
     keepPreviousData: false,
+    initialData: loadedAssets,
     queryFn: ({ queryKey, signal }) => fetchPack(queryKey[1], signal),
-    onSettled(data, error) {
+    onSettled(data) {
       if (data) {
         setStore({ assets: data });
+
+        if (import.meta.hot) {
+          import.meta.hot.data.assets = data;
+        }
       }
-    },
+    }
   });
 
   const loadingPack = () => packQuery.isFetching || !packQuery.data;
@@ -65,7 +75,11 @@ export function GameProvider(props: GameProviderProps) {
       if (socket.readyState !== socket.OPEN) return;
       socket.send(JSON.stringify(action));
     };
-    setStore({ dispatch });
+
+    setStore({
+      dispatch,
+      assets: packQuery.data
+    });
 
     const handleMessage = (e: MessageEvent) => {
       const message = JSON.parse(e.data) as Message;
@@ -83,7 +97,7 @@ export function GameProvider(props: GameProviderProps) {
           }));
           break;
         case 'khil':
-          toast.success(`Made by Kiril Khil`, { icon: pickRandomAvatar() });
+          toast.success(`Who asked?`, { icon: pickRandomAvatar() });
           break;
       }
     }

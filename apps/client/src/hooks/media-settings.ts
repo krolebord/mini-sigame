@@ -1,4 +1,3 @@
-/* @refresh reload */
 import { createStore, StoreSetter } from "solid-js/store";
 import { z } from 'zod';
 

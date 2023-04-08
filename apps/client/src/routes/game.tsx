@@ -3,7 +3,7 @@ import { AnswerNode, QuestionNode } from '@tic/worker/src/manifest';
 import { Accessor, createEffect, createMemo, For, Match, mergeProps, onCleanup, Show, Switch } from 'solid-js';
 import toast from 'solid-toast';
 import { Button } from '../componets/Button';
-import { GameProvider, useGameStore, useInvalidatePack, useIsHost } from '../componets/Game';
+import { GameProvider, useGameStore, useInvalidatePack, useIsHost } from '../componets/GameProvider';
 import { ProgressLine, TimerProgressLine } from '../componets/TimerLine';
 import { useMediaSettings } from '../hooks/media-settings';
 import { useUsername } from '../hooks/username';
@@ -68,7 +68,7 @@ function ImageNode(props: { filename: string }) {
     when={url()}
     fallback={<p>Image not found</p>}
   >
-    {url => <img class="max-h-[40vh]" src={url()} alt={props.filename} />}
+    {url => <img class="max-h-[60vh]" src={url()} />}
   </Show>;
 }
 
@@ -110,7 +110,7 @@ function VideoNode(props: { filename: string }) {
   >
     {url => <video
       ref={video}
-      class="max-h-[40vh]"
+      class="max-h-[60vh]"
       controls autoplay
       onvolumechange={e => setSettings({ volume: e.currentTarget.volume })}
     >
@@ -141,9 +141,9 @@ function QuestionBoard() {
         <Show when={store.lobbyState.game.type === 'question' && store.lobbyState.game}>
           {gameState => <Show
             when={!!gameState().timerTime}
-            fallback={<TimerProgressLine start={gameState().timerStarts} end={gameState().timerEnds} />}
+            fallback={<TimerProgressLine start={gameState().timerStarts} end={gameState().timerStarts + 1} />}
           >
-            <ProgressLine progress={(gameState().timerTime! - gameState().timerStarts) / (gameState().timerEnds - gameState().timerStarts)} />
+            <ProgressLine progress={1} />
           </Show>}
         </Show>
         <For each={gameState().nodes}>

@@ -1,4 +1,3 @@
-/* @refresh reload */
 import { createSignal } from "solid-js";
 
 const usernameKey = 'username';
