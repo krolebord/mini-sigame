@@ -156,9 +156,10 @@ export class MiniSigameLobby extends SingleReplica {
 
   private initializedAt: number | undefined = undefined;
 
-  private readonly questionDisplayDelay = 1000 * 2;
+  private readonly questionDisplayDelay = 1000 * 5;
   private readonly questionTimer = 1000 * 30;
-  private readonly showAnswerDelay = 1000 * 5;
+  private readonly showAnswerDelay = 1000 * 4;
+  private readonly banDuration = 1000 * 2.5;
 
   private manifest!: StoredManifest;
 
@@ -292,13 +293,17 @@ export class MiniSigameLobby extends SingleReplica {
     },
     "request-action": (event) => {
       const lastActivation = this.lastRequestActionByUser.get(event.rid);
+      const isBanned = lastActivation && lastActivation + this.banDuration > Date.now();
       if (this.lobbyState.game.type !== 'question'
         || !!this.lobbyState.game.answeringPlayer
         || this.lobbyState.game.alreadyAnswered.includes(event.rid)
         || Date.now() < this.lobbyState.game.timerStarts
-        || (lastActivation && lastActivation + 1000 * 2 > Date.now())
-      ) {
-        this.lastRequestActionByUser.set(event.rid, Date.now());
+        || isBanned) 
+      {
+        if (!isBanned) {
+          this.lastRequestActionByUser.set(event.rid, Date.now());
+        }
+
         this.whisper(event.rid, { type: 'khil' });
         return;
       }
@@ -336,6 +341,7 @@ export class MiniSigameLobby extends SingleReplica {
         this.broadcastNotification({
           type: 'success',
           message: `Correct! ${player.user.id} gets +${this.lobbyState.game.price}!`,
+          position: 'top-center'
         });
 
         this.broadcastPatch();
@@ -360,6 +366,7 @@ export class MiniSigameLobby extends SingleReplica {
         this.broadcastNotification({
           type: 'success',
           message: `=( ${player.user.id} gets -${this.lobbyState.game.price}!`,
+          position: 'top-center'
         });
 
         this.broadcastPatch();
