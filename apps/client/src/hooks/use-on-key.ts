@@ -1,6 +1,12 @@
-import { Accessor, createEffect, onCleanup } from "solid-js";
+import { Accessor, createEffect, onCleanup } from 'solid-js';
 
-export function useOnKey({ key, fn }: { key: Accessor<string>, fn: () => void }) {
+export function useOnKey({
+  key,
+  fn,
+}: {
+  key: Accessor<string>;
+  fn: () => void;
+}) {
   const handler = (event: KeyboardEvent) => {
     if (event.key === key()) {
       fn();
@@ -8,9 +14,9 @@ export function useOnKey({ key, fn }: { key: Accessor<string>, fn: () => void })
   };
 
   createEffect(() => {
-    window.addEventListener('keydown', handler);
+    window.addEventListener('keyup', handler);
     onCleanup(() => {
-      window.removeEventListener('keydown', handler);
-    })
-  })
+      window.removeEventListener('keyup', handler);
+    });
+  });
 }

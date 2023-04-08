@@ -1,8 +1,19 @@
 import { createQuery, useQueryClient } from '@tanstack/solid-query';
 import { GameState, LobbyState, HostState, Message, Action } from '@tic/worker';
 import { patch } from 'jsondiffpatch';
-import { Accessor, createContext, createEffect, Match, onCleanup, Switch, useContext, JSX, createComputed, createMemo } from 'solid-js';
-import { createStore, produce, reconcile } from 'solid-js/store'
+import {
+  Accessor,
+  createContext,
+  createEffect,
+  Match,
+  onCleanup,
+  Switch,
+  useContext,
+  JSX,
+  createComputed,
+  createMemo,
+} from 'solid-js';
+import { createStore, produce, reconcile } from 'solid-js/store';
 import toast from 'solid-toast';
 import { config } from '../config';
 import { useOnKey } from '../hooks/use-on-key';
@@ -26,12 +37,12 @@ export function useInvalidatePack(key: Accessor<string>) {
     queryClient.invalidateQueries(['pack', key()]);
   };
 }
-  
+
 type GameProviderProps = {
-  gameKey: string,
-  loadingPack: JSX.Element,
-  connecting: JSX.Element,
-  children: JSX.Element
+  gameKey: string;
+  loadingPack: JSX.Element;
+  connecting: JSX.Element;
+  children: JSX.Element;
 };
 
 const GameContext = createContext<ClientGameState>();
@@ -57,7 +68,7 @@ export function GameProvider(props: GameProviderProps) {
           import.meta.hot.data.assets = data;
         }
       }
-    }
+    },
   });
 
   const loadingPack = () => packQuery.isFetching || !packQuery.data;
@@ -69,8 +80,10 @@ export function GameProvider(props: GameProviderProps) {
   createEffect(() => {
     if (!username() || loadingPack()) return;
 
-    const socket = new WebSocket(`${config.wsUrl}/game/${props.gameKey}?u=${username()}`);
-    
+    const socket = new WebSocket(
+      `${config.wsUrl}/game/${props.gameKey}?u=${username()}`
+    );
+
     const dispatch: Dispatch = (action) => {
       if (socket.readyState !== socket.OPEN) return;
       socket.send(JSON.stringify(action));
@@ -78,50 +91,53 @@ export function GameProvider(props: GameProviderProps) {
 
     setStore({
       dispatch,
-      assets: packQuery.data
+      assets: packQuery.data,
     });
 
     const handleMessage = (e: MessageEvent) => {
       const message = JSON.parse(e.data) as Message;
       switch (message.type) {
         case 'lobby':
-          setStore('lobbyState', reconcile(message.state))
+          setStore('lobbyState', reconcile(message.state));
           break;
         case 'host':
           setStore('hostState', message.state);
           break;
         case 'patch':
           if (!store.lobbyState) return;
-          setStore('lobbyState', produce(state => {
-            patch(state, message.patch);
-          }));
+          setStore(
+            'lobbyState',
+            produce((state) => {
+              patch(state, message.patch);
+            })
+          );
           break;
         case 'khil':
           toast.success(`Who asked?`, { icon: pickRandomAvatar() });
           break;
       }
-    }
+    };
 
     const handleError = (e: Event) => {
       console.error(`[${props.gameKey}] error:`, e);
-    }
+    };
 
     const handleOpen = () => {
       console.log(`[${props.gameKey}] open`);
-    }
+    };
 
     const handleClose = () => {
       toast('Connection closed');
       console.log(`[${props.gameKey}] close`);
-    }
+    };
 
     useOnKey({
       key: () => ' ',
-      fn: () => dispatch({ type: 'request-action' })
-    })
+      fn: () => dispatch({ type: 'request-action' }),
+    });
 
     const pingInterval = setInterval(() => {
-      dispatch({ type: 'ping' })
+      dispatch({ type: 'ping' });
     }, 7000);
 
     socket.addEventListener('message', handleMessage);
@@ -136,34 +152,36 @@ export function GameProvider(props: GameProviderProps) {
       socket.removeEventListener('close', handleClose);
       clearInterval(pingInterval);
       socket.close();
-    })
+    });
   });
 
-  return <Switch>
-    <Match when={!store.assets || loadingPack()}>
-      <>{props.loadingPack}</>
-    </Match>
-    <Match when={!store.lobbyState}>
-      <>{props.connecting}</>
-    </Match>
-    <Match when={store.lobbyState}>
-      <GameContext.Provider value={store}>
-        <>{props.children}</>
-      </GameContext.Provider>
-    </Match>
-  </Switch>;
+  return (
+    <Switch>
+      <Match when={!store.assets || loadingPack()}>
+        <>{props.loadingPack}</>
+      </Match>
+      <Match when={!store.lobbyState}>
+        <>{props.connecting}</>
+      </Match>
+      <Match when={store.lobbyState}>
+        <GameContext.Provider value={store}>
+          <>{props.children}</>
+        </GameContext.Provider>
+      </Match>
+    </Switch>
+  );
 }
 
 export function useGameStore() {
   const store = useContext(GameContext);
   if (!store) throw new Error('useGameStore must be used within GameProvider');
   return store;
-};
+}
 
 export function useIsHost(): Accessor<boolean> {
   const store = useGameStore();
   return createMemo(() => !!store.hostState);
-};
+}
 
 const avatars = [
   '👾',

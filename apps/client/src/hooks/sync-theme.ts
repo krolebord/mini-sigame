@@ -1,5 +1,5 @@
-import { createEffect, createRoot, onCleanup } from "solid-js";
-import { usePreferences } from "./use-preferences";
+import { createEffect, createRoot, onCleanup } from 'solid-js';
+import { usePreferences } from './use-preferences';
 
 export function syncTheme() {
   createRoot(() => {
@@ -18,7 +18,6 @@ export function syncTheme() {
 function toggleTheme(isDark: boolean) {
   if (isDark) {
     document.documentElement.classList.add('dark');
-
   } else {
     document.documentElement.classList.remove('dark');
   }
