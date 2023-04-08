@@ -228,12 +228,12 @@ function GameBoard() {
       }
     >
       <Match when={store.lobbyState.game.type === 'choose-question'}>
-        <p>Choose question</p>
+        <p>Choose question: </p>
         <div class="flex flex-row gap-3">
           <div class="flex flex-col gap-3 max-w-[9rem]">
             <For each={store.lobbyState.round.categories}>
               {(category) => (
-                <p class="h-12 flex items-center">{category.name}</p>
+                <p class="h-12 flex items-center break-all">{category.name}</p>
               )}
             </For>
           </div>
