@@ -20,7 +20,7 @@ export function NewUserRoute() {
         />
         <div>
           <label for="theme-selector">Theme: </label>
-          <ThemeSelect/>
+          <ThemeSelect />
         </div>
         <Show
           when={preferences.username.length > 3}
