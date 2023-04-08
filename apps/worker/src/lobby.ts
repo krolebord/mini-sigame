@@ -1,5 +1,4 @@
 import { SingleReplica, SingleSocketEvent } from '@tic/dog';
-import { diff, Delta, create as createDiffer } from 'jsondiffpatch';
 import { Delta, create as createDiffer } from 'jsondiffpatch';
 import { z } from 'zod';
 import { Env } from './env';
@@ -484,7 +483,7 @@ export class MiniSigameLobby extends SingleReplica {
       categories: round.themes.map((category) => ({
         name: category.name,
         questions: category.questions.map((question) => ({
-          price: question.price * 100,
+          price: question.price,
         })),
       })),
     }
