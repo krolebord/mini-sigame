@@ -8,6 +8,7 @@ import { GameRoute } from './routes/Game';
 import { Toaster } from 'solid-toast';
 import { useUsername } from './hooks/use-preferences';
 import { syncTheme } from './hooks/sync-theme';
+import { ThemeSelect } from './componets/ThemeSelect';
 
 export function App() {
   const queryClient = new QueryClient();
@@ -18,6 +19,7 @@ export function App() {
       <QueryClientProvider client={queryClient}>
         <header class="px-2 py-1 flex justify-between border-b border-slate-400">
           <Link href="/home">SIU</Link>
+          <ThemeSelect />
           <Link href="/">{username()}</Link>
         </header>
 

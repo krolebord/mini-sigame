@@ -75,6 +75,7 @@ function NodeDisplay(props: { node: QuestionNode | AnswerNode }) {
         {(node) => <VideoNode filename={node().filename} />}
       </Match>
     </Switch>
+    
   );
 }
 
@@ -281,9 +282,17 @@ function QuestionBoard() {
               </Show>
             )}
           </Show>
+          
           <For each={gameState().nodes}>
             {(node) => <NodeDisplay node={node} />}
           </For>
+          <Show
+            when={ store.lobbyState.game.type === 'question' && store.hostState?.answer}
+            >
+              {
+                (answer) => <p>Answer: <span class="text-transparent bg-slate-200 hover:text-inherit rounded-md dark:bg-gray-800 px-1">{answer()}</span></p>
+              }
+            </Show>
         </div>
       )}
     </Show>
@@ -382,13 +391,7 @@ function HostActions() {
     });
   };
 
-  const showAnswer = (answer: string) => {
-    toast(answer, {
-      id: 'answer',
-      position: 'bottom-left',
-    });
-  };
-
+  
   const skipRound = () => {
     store.dispatch({
       type: 'host:choose-round',
@@ -405,11 +408,7 @@ function HostActions() {
         >
           <Button onClick={startGame}>Start game</Button>
         </Show>
-        <Show when={store.hostState?.answer}>
-          {(answer) => (
-            <Button onclick={() => showAnswer(answer())}>Show answer</Button>
-          )}
-        </Show>
+        
 
         <Show
           when={
@@ -441,7 +440,7 @@ function Game() {
       
       <div class="flex flex-row w-full px-3 gap-4">
         <Host />
-        <div class="flex flex-col w-full justify-center  gap-20">
+        <div class="flex flex-col w-full justify-center  gap-10">
           <div class="flex-[3_3_0%]min-h-[60vh] justify-center flex flex-col">
             <RoundHeader />
             <GameBoard />

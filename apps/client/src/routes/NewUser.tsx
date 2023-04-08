@@ -2,6 +2,7 @@ import { Link } from '@solidjs/router';
 import { Show } from 'solid-js';
 import { Button } from '../componets/Button';
 import { usePreferences } from '../hooks/use-preferences';
+import { ThemeSelect } from '../componets/ThemeSelect';
 
 export function NewUserRoute() {
   const [preferences, setPreferences] = usePreferences();
@@ -19,18 +20,7 @@ export function NewUserRoute() {
         />
         <div>
           <label for="theme-selector">Theme: </label>
-          <select
-            id="theme-selector"
-            name="theme"
-            value={preferences.theme}
-            oninput={(e) =>
-              setPreferences({ theme: e.currentTarget.value as never })
-            }
-          >
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="system">System</option>
-          </select>
+          <ThemeSelect/>
         </div>
         <Show
           when={preferences.username.length > 3}
