@@ -158,6 +158,7 @@ export class MiniSigameLobby extends SingleReplica {
 
   private readonly questionDisplayDelay = 1000 * 2;
   private readonly questionTimer = 1000 * 30;
+  private readonly showAnswerDelay = 1000 * 5;
 
   private manifest!: StoredManifest;
 
@@ -169,6 +170,8 @@ export class MiniSigameLobby extends SingleReplica {
   private currentQuestion?: StoredManifest['rounds'][number]['themes'][number]['questions'][number];
 
   private readonly lastRequestActionByUser = new Map<string, number>();
+
+  private currentTransitionId: number | undefined = undefined;
 
   private readonly kv: KVNamespace;
 
@@ -233,23 +236,7 @@ export class MiniSigameLobby extends SingleReplica {
         return;
       }
 
-      if (this.lobbyState.game.type === 'question' && this.currentQuestion) {
-        this.lobbyState.game = {
-          type: 'question:display-answer',
-          nodes: this.currentQuestion.answer,
-        };
-        this.broadcastPatch();
-        return;
-      }
-
-      if (this.lobbyState.game.type === 'question:display-answer' && this.currentQuestion) {
-        this.currentQuestion = undefined;
-        this.lobbyState.game = {
-          type: 'choose-question',
-        };
-        this.broadcastPatch();
-      }
-
+      this.continueGame();
     },
     'host:choose-question': (event, data) => {
       if (!this.isHost(event.rid) || this.lobbyState.game.type !== 'choose-question') {
@@ -382,6 +369,44 @@ export class MiniSigameLobby extends SingleReplica {
 
   private isHost(rid: string): boolean {
     return this.manifest.host === rid;
+  }
+
+  private continueGame() {
+    this.skipTransition();
+
+    if (this.lobbyState.game.type === 'question' && this.currentQuestion) {
+      this.lobbyState.game = {
+        type: 'question:display-answer',
+        nodes: this.currentQuestion.answer,
+      };
+      this.broadcastPatch();
+      this.setTransition(this.showAnswerDelay, () => this.continueGame());
+      return;
+    }
+
+    if (this.lobbyState.game.type === 'question:display-answer' && this.currentQuestion) {
+      this.currentQuestion = undefined;
+      this.lobbyState.game = {
+        type: 'choose-question',
+      };
+      this.broadcastPatch();
+      return;
+    }
+  }
+
+  private skipTransition() {
+    if (this.currentTransitionId) {
+      clearTimeout(this.currentTransitionId);
+      this.currentTransitionId = undefined;
+    }
+  }
+
+  private setTransition(delay: number, transition: () => void) {
+    this.skipTransition();
+    this.currentTransitionId = setTimeout(() => {
+      this.currentTransitionId = undefined;
+      transition();
+    }, delay);
   }
 
   async receive(req: Request) {
