@@ -14,9 +14,9 @@ export function useOnKey({
   };
 
   createEffect(() => {
-    window.addEventListener('keydown', handler);
+    window.addEventListener('keyup', handler);
     onCleanup(() => {
-      window.removeEventListener('keydown', handler);
+      window.removeEventListener('keyup', handler);
     });
   });
 }
