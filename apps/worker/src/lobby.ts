@@ -157,6 +157,8 @@ export class MiniSigameLobby extends SingleReplica {
 
   private currentQuestion?: StoredManifest['rounds'][number]['themes'][number]['questions'][number];
 
+  private readonly lastRequestActionByUser = new Map<string, number>();
+
   private readonly kv: KVNamespace;
 
   private readonly storageKey;
@@ -290,11 +292,14 @@ export class MiniSigameLobby extends SingleReplica {
       this.broadcastPatch();
     },
     "request-action": (event) => {
+      const lastActivation = this.lastRequestActionByUser.get(event.rid);
       if (this.lobbyState.game.type !== 'question'
         || !!this.lobbyState.game.answeringPlayer
         || this.lobbyState.game.alreadyAnswered.includes(event.rid)
         || Date.now() < this.lobbyState.game.timerStarts
+        || (lastActivation && lastActivation + 1000 * 2 > Date.now())
       ) {
+        this.lastRequestActionByUser.set(event.rid, Date.now());
         this.whisper(event.rid, { type: 'khil' });
         return;
       }
