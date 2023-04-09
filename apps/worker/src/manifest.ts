@@ -3,15 +3,27 @@ import { numeric } from 'zod-form-data';
 
 const primitiveSchema = z.union([z.string(), z.number(), z.boolean()]);
 
-const atomMediaSchema = z
-  .object({
-    meta_type: z.string(),
-    '#text': z.string(),
-  })
-  .transform((atom) => ({
+function arrayOrSingle<T extends z.ZodSchema>(schema: T) {
+  return z.union([
+    schema.transform((x) => [x]),
+    z.array(schema)
+  ]) as unknown as z.ZodArray<T>;
+}
+
+const atomMediaSchema = z.object({
+  meta_type: z.string().optional(),
+  meta_time: numeric(z.number().optional()),
+  '#text': z.string().optional(),
+}).transform((atom) => {
+  if (!('meta_type' in atom) || !atom.meta_type) {
+    return atom['#text']
+  }
+
+  return ({
     type: atom.meta_type,
-    filename: atom['#text'].slice(1),
-  }));
+    filename: '#text' in atom ? atom['#text']?.slice(1) : undefined,
+  });
+});
 
 const atomNodeSchema = z
   .union([primitiveSchema, atomMediaSchema])
@@ -29,6 +41,22 @@ const questionSchema = z.object({
       .union([atomNodeSchema, z.array(atomNodeSchema)])
       .transform((node) => node.flatMap((x) => x)),
   }),
+}).transform(question => {
+  const markerIndex = question.scenario.atom.findIndex(atom => typeof atom === 'object' && atom.type === 'marker');
+
+  if (markerIndex === -1) {
+    return ({
+      price: question.meta_price,
+      answer: question.right.answer,
+      scenario: question.scenario.atom,
+    });
+  }
+
+  return ({
+    price: question.meta_price,
+    answer: [...question.right.answer, ...question.scenario.atom.slice(markerIndex + 1)],
+    scenario: question.scenario.atom.slice(0, markerIndex),
+  });
 })
 
 const normalRoundSchema = z
@@ -36,14 +64,11 @@ const normalRoundSchema = z
     meta_name: z.string(),
     meta_type: z.undefined(),
     themes: z.object({
-      theme: z.array(
+      theme: arrayOrSingle(
         z.object({
           meta_name: z.string(),
           questions: z.object({
-            question: z.union([
-              z.array(questionSchema),
-              questionSchema.transform(x => [x]),
-            ]),
+            question: arrayOrSingle(questionSchema),
           }),
         })
       ),
@@ -54,12 +79,8 @@ const normalRoundSchema = z
       name: round.meta_name,
       themes: round.themes.theme.map((theme) => ({
         name: theme.meta_name,
-        questions: theme.questions.question.map((question) => ({
-          price: question.meta_price,
-          answer: question.right.answer,
-          scenario: question.scenario.atom,
-        })),
-      })),
+        questions: theme.questions.question
+      }))
     };
   });
 
@@ -75,8 +96,7 @@ const finalRoundSchema = z
     };
   });
 
-const roundSchema = z
-  .array(z.union([normalRoundSchema, finalRoundSchema]))
+const roundSchema = arrayOrSingle(z.union([normalRoundSchema, finalRoundSchema]))
   .transform((round) => {
     // TODO Add support for final rounds
     return round.filter((round): round is NormalRound => !('type' in round));

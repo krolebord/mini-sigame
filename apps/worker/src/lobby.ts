@@ -505,7 +505,7 @@ export class MiniSigameLobby extends SingleReplica {
     const parsed = JSON.parse(data);
     const message = actionSchema.safeParse(parsed);
 
-    if (!message.success) {
+    if (!message.success || message.data.type === 'ping') {
       return;
     }
 
