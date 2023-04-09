@@ -167,21 +167,27 @@ function VideoNode(props: { filename?: string }) {
 function RoundHeader() {
   const store = useGameStore();
 
-  return (<div class="game-grid-header">
-    <div class="flex justify-between">
-      <span>Round {store.lobbyState.round.number}</span>
-      <span>{store.lobbyState.pack.name}</span>
-      <span>{store.lobbyState.round.name}</span>
+  return (
+    <div class="game-grid-header">
+      <div class="flex justify-between">
+        <span>Round {store.lobbyState.round.number}</span>
+        <span>{store.lobbyState.pack.name}</span>
+        <span>{store.lobbyState.round.name}</span>
+      </div>
+      <Show
+        when={
+          store.lobbyState.game.type === 'question' && store.lobbyState.game
+        }
+      >
+        {(gameState) => (
+          <div class="flex flex-col justify-center items-center">
+            <p>Category: {gameState().category}</p>
+            <ProgressLine progress={gameState().canAnswer ? 1 : 0} />
+          </div>
+        )}
+      </Show>
     </div>
-    <Show
-      when={store.lobbyState.game.type === 'question' && store.lobbyState.game}
-    >
-      {(gameState) => (<div class="flex flex-col justify-center items-center">
-        <p>Category: {gameState().category}</p>
-        <ProgressLine progress={gameState().canAnswer ? 1 : 0} />
-      </div>)}            
-    </Show>
-  </div>);
+  );
 }
 
 function Host() {
@@ -189,7 +195,10 @@ function Host() {
   return (
     <div class="flex flex-col items-center game-grid-host min-w-[7rem] pl-4">
       <p>Host:</p>
-      <PlayerAvatar avatar={store.lobbyState.host.avatar} username={store.lobbyState.host.id} />
+      <PlayerAvatar
+        avatar={store.lobbyState.host.avatar}
+        username={store.lobbyState.host.id}
+      />
       <p>{store.lobbyState.host.id}</p>
       <HostActions />
     </div>
@@ -222,83 +231,86 @@ function Players() {
     });
   };
 
-  return (<div class="flex flex-col game-grid-players justify-end items-center gap-2">
-    <Show
-      when={
-        store.lobbyState.game.type === 'question' &&
-        store.hostState?.answer
-      }
-    >
-      {(answer) => (
-        <p>
-          Answer:{' '}
-          <span class="text-transparent bg-slate-200 hover:text-inherit rounded-md dark:bg-gray-800 px-1">
-            {answer()}
-          </span>
-        </p>
-      )}
-    </Show>
-    <Show
-      when={
-        isHost() &&
-        store.lobbyState.game.type === 'question' &&
-        !!store.lobbyState.game.answeringPlayer
-      }
-    >
-      <div class="flex flex-row gap-4">
-        <Button variant="default" onclick={() => acceptAnswer(true)}>
-          Accept
-        </Button>
-        <Button variant="destructive" onclick={() => acceptAnswer(false)}>
-          Reject
-        </Button>
-      </div>
-    </Show>
-    <div class="flex gap-4">
-      <For each={store.lobbyState.players}>
-        {(player) => (
-          <div class="flex flex-col items-center">
-            <PlayerAvatar
-              avatar={player.user.avatar}
-              username={player.user.id}
-              isAnswering={
-                store.lobbyState.game.type === 'question' &&
-                store.lobbyState.game.answeringPlayer === player.user.id
-              }
-              isAnswered={
-                store.lobbyState.game.type === 'question' &&
-                store.lobbyState.game.alreadyAnswered.includes(player.user.id)
-              }
-            />
-            <p classList={{ 'text-gray-400': !player.online }}>
-              {player.user.id}
-            </p>
-            <Show
-              when={isHost()}
-              fallback={
-                <p class="text-blue-900 dark:text-white">{player.score}</p>
-              }
-            >
-              <input
-                type="number"
-                class="text-blue-900 text-center border rounded-sm w-24 dark:text-white"
-                value={player.score}
-                size={player.score.toString().length + 2}
-                onblur={(e) => {
-                  const score = e.currentTarget.valueAsNumber;
-                  if (score === player.score) return;
-                  return setPlayerScore(player.user.id, score);
-                }}
-              />
-              <Show when={!player.online}>
-                <Button onclick={() => kickPlayer(player.user.id)}>Kick</Button>
-              </Show>
-            </Show>
-          </div>
+  return (
+    <div class="flex flex-col game-grid-players justify-end items-center gap-2">
+      <Show
+        when={
+          store.lobbyState.game.type === 'question' && store.hostState?.answer
+        }
+      >
+        {(answer) => (
+          <p>
+            Answer:{' '}
+            <span class="text-transparent bg-slate-200 hover:text-inherit rounded-md dark:bg-gray-800 px-1">
+              {answer()}
+            </span>
+          </p>
         )}
-      </For>
+      </Show>
+      <Show
+        when={
+          isHost() &&
+          store.lobbyState.game.type === 'question' &&
+          !!store.lobbyState.game.answeringPlayer
+        }
+      >
+        <div class="flex flex-row gap-4">
+          <Button variant="default" onclick={() => acceptAnswer(true)}>
+            Accept
+          </Button>
+          <Button variant="destructive" onclick={() => acceptAnswer(false)}>
+            Reject
+          </Button>
+        </div>
+      </Show>
+      <div class="flex gap-4">
+        <For each={store.lobbyState.players}>
+          {(player) => (
+            <div class="flex flex-col items-center">
+              <PlayerAvatar
+                avatar={player.user.avatar}
+                username={player.user.id}
+                isAnswering={
+                  store.lobbyState.game.type === 'question' &&
+                  store.lobbyState.game.answeringPlayer === player.user.id
+                }
+                isAnswered={
+                  store.lobbyState.game.type === 'question' &&
+                  store.lobbyState.game.alreadyAnswered.includes(player.user.id)
+                }
+              />
+              <p classList={{ 'text-gray-400': !player.online }}>
+                {player.user.id}
+              </p>
+              <Show
+                when={isHost()}
+                fallback={
+                  <p class="text-blue-900 dark:text-white">{player.score}</p>
+                }
+              >
+                <input
+                  type="number"
+                  class="text-blue-900 text-center border rounded-sm w-24 dark:text-white"
+                  value={player.score}
+                  size={player.score.toString().length + 2}
+                  onblur={(e) => {
+                    const score = e.currentTarget.valueAsNumber;
+                    if (score === player.score) return;
+                    return setPlayerScore(player.user.id, score);
+                  }}
+                />
+                <Show when={!player.online}>
+                  <Button onclick={() => kickPlayer(player.user.id)}>
+                    Kick
+                  </Button>
+                </Show>
+              </Show>
+            </div>
+          )}
+        </For>
+      </div>
     </div>
-  </div>);
+  );
 }
 
 function ChooseQuestionBoard() {
@@ -386,27 +398,27 @@ function GameBoard() {
   const store = useGameStore();
 
   return (
-      <Switch
-        fallback={
-          <div class="flex flex-col flex-1 justify-center items-center">
-            <pre>{JSON.stringify(store.lobbyState.game, undefined, '  ')}</pre>
-          </div>
-        }
-      >
-        <Match when={store.lobbyState.game.type === 'choose-question'}>
-          <ChooseQuestionBoard />
-        </Match>
-        <Match when={store.lobbyState.game.type.startsWith('question')}>
-          <QuestionBoard />
-        </Match>
-      </Switch>
+    <Switch
+      fallback={
+        <div class="flex flex-col flex-1 justify-center items-center">
+          <pre>{JSON.stringify(store.lobbyState.game, undefined, '  ')}</pre>
+        </div>
+      }
+    >
+      <Match when={store.lobbyState.game.type === 'choose-question'}>
+        <ChooseQuestionBoard />
+      </Match>
+      <Match when={store.lobbyState.game.type.startsWith('question')}>
+        <QuestionBoard />
+      </Match>
+    </Switch>
   );
 }
 
 function HostActions() {
   const store = useGameStore();
   const isHost = useIsHost();
-
+  const continueAllowedGameTypes = ['question:display-answer', 'question'];
   const continueGame = () => {
     store.dispatch({
       type: 'host:continue',
@@ -423,7 +435,9 @@ function HostActions() {
   return (
     <Show when={isHost()}>
       <div class="flex md:flex-col items-center flex-col-reverse gap-1">
-        <Button onClick={continueGame}>Continue (Space key)</Button>
+        <Show when={continueAllowedGameTypes.includes(store.lobbyState.game.type)}>
+          <Button onClick={continueGame}>Continue (Space key)</Button>
+        </Show>
         <Show when={store.lobbyState.game.type === 'choose-question'}>
           <Button onclick={skipRound}>Next round</Button>
         </Show>
@@ -466,7 +480,7 @@ function ConnectingDisplay(props: { gameId: string }) {
         <Button onClick={invalidatePack}>Reload pack</Button>
       </Show>
     </main>
-  ) 
+  );
 }
 
 export function GameRoute() {
