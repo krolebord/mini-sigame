@@ -56,6 +56,7 @@ export function HomeRoute() {
           type="file"
           name="pack"
           disabled={packUploadMutation.isLoading}
+          accept=".siq, .zip"
         />
         <Button type="submit" disabled={packUploadMutation.isLoading}>
           Create new game
