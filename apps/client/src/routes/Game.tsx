@@ -312,15 +312,13 @@ function QuestionBoard() {
       {(gameState) => (
         <div class="flex flex-col gap-3 justify-center items-center flex-1">
           <Show
-            when={
-              store.lobbyState.game.type === 'question' && store.lobbyState.game
-            }
+            when={store.lobbyState.game.type === 'question' && store.lobbyState.game}
           >
-            {(gameState) => (
+            {(gameState) => (<>
               <ProgressLine progress={gameState().canAnswer ? 1 : 0} />
-            )}
+              <p>Category: {gameState().category}</p>
+            </>)}            
           </Show>
-
           <For each={gameState().nodes}>
             {(node) => <NodeDisplay node={node} />}
           </For>
