@@ -1,10 +1,15 @@
 .game-grid {
   display: grid;
   grid-template-areas: 
+    "host header"
     "host game"
     ". players";
   grid-template-columns: min-content 1fr;
-  grid-template-rows: 1fr min-content;
+  grid-template-rows: min-content 1fr min-content;
+}
+
+.game-grid-header {
+  grid-area: header;
 }
 
 .game-grid-host {

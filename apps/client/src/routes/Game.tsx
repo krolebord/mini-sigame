@@ -149,13 +149,21 @@ function VideoNode(props: { filename?: string }) {
 function RoundHeader() {
   const store = useGameStore();
 
-  return (
+  return (<div class="game-grid-header">
     <div class="flex justify-between">
       <span>Round {store.lobbyState.round.number}</span>
       <span>{store.lobbyState.pack.name}</span>
       <span>{store.lobbyState.round.name}</span>
     </div>
-  );
+    <Show
+      when={store.lobbyState.game.type === 'question' && store.lobbyState.game}
+    >
+      {(gameState) => (<>
+        <p class="text-center mb-2">Category: {gameState().category}</p>
+        <ProgressLine progress={gameState().canAnswer ? 1 : 0} />
+      </>)}            
+    </Show>
+  </div>);
 }
 
 function Host() {
@@ -347,14 +355,6 @@ function QuestionBoard() {
     >
       {(gameState) => (
         <div class="flex flex-col gap-2 justify-center items-center flex-1">
-          <Show
-            when={store.lobbyState.game.type === 'question' && store.lobbyState.game}
-          >
-            {(gameState) => (<>
-              <p>Category: {gameState().category}</p>
-              <ProgressLine progress={gameState().canAnswer ? 1 : 0} />
-            </>)}            
-          </Show>
           <For each={gameState().nodes}>
             {(node) => <NodeDisplay node={node} />}
           </For>
@@ -430,8 +430,8 @@ function Game() {
   return (
     <main class="h-full w-full gap-2 game-grid py-2 max-h-[calc(var(--screen-height)-var(--header-height))]">
       <Host />
-      <div class="flex flex-col overflow-auto pr-4 game-grid-game">
-        <RoundHeader />
+      <RoundHeader />
+      <div class="flex flex-col overflow-auto pr-4 game-grid-game relative">
         <GameBoard />
       </div>
       <Players />
