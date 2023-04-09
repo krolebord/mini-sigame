@@ -28,9 +28,7 @@ export type GameState =
     category: string;
     nodes: QuestionNode[];
     price: number;
-    timerStarts: number;
-    timerTime?: number;
-    timerEnds: number;
+    canAnswer: boolean;
     answeringPlayer?: string;
     alreadyAnswered: string[];
   }
@@ -156,8 +154,7 @@ export class MiniSigameLobby extends SingleReplica {
 
   private initializedAt: number | undefined = undefined;
 
-  private readonly questionDisplayDelay = 1000 * 5;
-  private readonly questionTimer = 1000 * 30;
+  private readonly questionDisplayDelay = 1000 * 2;
   private readonly showAnswerDelay = 1000 * 4;
   private readonly banDuration = 1000 * 2.5;
 
@@ -269,12 +266,20 @@ export class MiniSigameLobby extends SingleReplica {
         type: 'question',
         category: category.name,
         nodes: this.currentQuestion.scenario,
-        timerStarts: Date.now() + this.questionDisplayDelay,
-        timerEnds: Date.now() + this.questionDisplayDelay + this.questionTimer,
+        canAnswer: false,
         alreadyAnswered: [],
         price: selectedQuestion.price,
       };
       this.broadcastPatch();
+
+      this.setTransition(this.questionDisplayDelay, () => {
+        if (this.lobbyState.game.type !== 'question') {
+          return;
+        }
+
+        this.lobbyState.game!.canAnswer = true;
+        this.broadcastPatch();
+      });
 
       this.hostState.answer = this.currentQuestion.answer
         .filter((node): node is string => !!node && typeof node !== 'object')
@@ -297,8 +302,8 @@ export class MiniSigameLobby extends SingleReplica {
       if (this.lobbyState.game.type !== 'question'
         || !!this.lobbyState.game.answeringPlayer
         || this.lobbyState.game.alreadyAnswered.includes(event.rid)
-        || Date.now() < this.lobbyState.game.timerStarts
-        || isBanned) 
+        || !this.lobbyState.game.canAnswer
+        || isBanned)
       {
         if (!isBanned) {
           this.lastRequestActionByUser.set(event.rid, Date.now());
@@ -315,7 +320,6 @@ export class MiniSigameLobby extends SingleReplica {
       }
 
       this.lobbyState.game.answeringPlayer = player.user.id;
-      this.lobbyState.game.timerTime = Date.now();
 
       this.broadcastPatch();
     },
@@ -350,21 +354,8 @@ export class MiniSigameLobby extends SingleReplica {
       else {
         player.score -= this.lobbyState.game.price;
 
-        this.lobbyState.game.timerTime = undefined;
-
-        const pauseTime = this.lobbyState.game.timerTime;
-
-        if (pauseTime) {
-          const timerOffset = Date.now() - pauseTime;
-          this.lobbyState.game.timerStarts += timerOffset;
-          this.lobbyState.game.timerEnds += timerOffset;
-        } else {
-          this.lobbyState.game.timerStarts = Date.now();
-          this.lobbyState.game.timerEnds = Date.now() + 1000;
-        }
-
         this.broadcastNotification({
-          type: 'success',
+          type: 'error',
           message: `=( ${player.user.id} gets -${this.lobbyState.game.price}!`,
           position: 'top-center'
         });

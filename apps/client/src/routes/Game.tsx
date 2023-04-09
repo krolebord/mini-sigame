@@ -78,11 +78,16 @@ function NodeDisplay(props: { node: QuestionNode | AnswerNode }) {
   );
 }
 
-function createGameAssetUrl(filename: Accessor<string>) {
+function createGameAssetUrl(filename: Accessor<string | undefined>) {
   const store = useGameStore();
 
   return createMemo(() => {
-    const asset = store.assets.get(normalizeFilename(filename()));
+    const name = filename();
+    if (!name) {
+      return null;
+    }
+
+    const asset = store.assets.get(normalizeFilename(name));
 
     if (!asset) {
       return null;
@@ -96,7 +101,7 @@ function createGameAssetUrl(filename: Accessor<string>) {
   });
 }
 
-function ImageNode(props: { filename: string }) {
+function ImageNode(props: { filename?: string }) {
   const url = createGameAssetUrl(() => props.filename);
 
   return (
@@ -108,7 +113,7 @@ function ImageNode(props: { filename: string }) {
   );
 }
 
-function AudioNode(props: { filename: string }) {
+function AudioNode(props: { filename?: string }) {
   const url = createGameAssetUrl(() => props.filename);
   const [preferences, setPreferences] = usePreferences();
 
@@ -137,7 +142,7 @@ function AudioNode(props: { filename: string }) {
   );
 }
 
-function VideoNode(props: { filename: string }) {
+function VideoNode(props: { filename?: string }) {
   const url = createGameAssetUrl(() => props.filename);
   const [preferences, setPreferences] = usePreferences();
 
@@ -278,17 +283,7 @@ function QuestionBoard() {
             }
           >
             {(gameState) => (
-              <Show
-                when={!!gameState().timerTime}
-                fallback={
-                  <TimerProgressLine
-                    start={gameState().timerStarts}
-                    end={gameState().timerStarts + 1}
-                  />
-                }
-              >
-                <ProgressLine progress={1} />
-              </Show>
+              <ProgressLine progress={gameState().canAnswer ? 1 : 0}/>
             )}
           </Show>
 
