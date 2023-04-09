@@ -18,9 +18,6 @@ export type HostState = {
 export type GameStateType = GameState['type'];
 export type GameState =
   | {
-    type: 'not-started';
-  }
-  | {
     type: 'choose-question';
   }
   | {
@@ -104,9 +101,6 @@ type ActionHandlers = {
 const actionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('ping') }),
   z.object({ type: z.literal('request-action') }),
-  z.object({
-    type: z.literal('host:start'),
-  }),
   z.object({
     type: z.literal('host:kick'),
     player: z.string(),
@@ -203,16 +197,6 @@ export class MiniSigameLobby extends SingleReplica {
       const index = this.lobbyState.players.indexOf(player!);
 
       this.lobbyState.players.splice(index, 1);
-      this.broadcastPatch();
-    },
-    'host:start': (event) => {
-      if (!this.isHost(event.rid) || this.lobbyState.game.type !== 'not-started') {
-        return;
-      }
-
-      this.lobbyState.game = {
-        type: 'choose-question',
-      };
       this.broadcastPatch();
     },
     "host:set-score": (event, data) => {
@@ -457,7 +441,7 @@ export class MiniSigameLobby extends SingleReplica {
       },
       round: this.getRound(0),
       game: {
-        type: 'not-started',
+        type: 'choose-question',
       },
       host: {
         id: pack.host,

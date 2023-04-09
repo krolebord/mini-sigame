@@ -389,12 +389,6 @@ function HostActions() {
   const store = useGameStore();
   const isHost = useIsHost();
 
-  const startGame = () => {
-    store.dispatch({
-      type: 'host:start',
-    });
-  };
-
   const continueGame = () => {
     store.dispatch({
       type: 'host:continue',
@@ -411,13 +405,7 @@ function HostActions() {
   return (
     <Show when={isHost()}>
       <div class="flex flex-col items-center gap-1">
-        <Show
-          when={store.lobbyState.game.type === 'not-started'}
-          fallback={<Button onClick={continueGame}>Continue</Button>}
-        >
-          <Button onClick={startGame}>Start game</Button>
-        </Show>
-
+        <Button onClick={continueGame}>Continue (Space key)</Button>
         <Show when={store.lobbyState.game.type === 'choose-question'}>
           <Button onclick={skipRound}>Next round</Button>
         </Show>
