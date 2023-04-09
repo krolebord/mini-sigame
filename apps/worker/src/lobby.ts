@@ -297,6 +297,11 @@ export class MiniSigameLobby extends SingleReplica {
       this.broadcastPatch();
     },
     "request-action": (event) => {
+      if (this.isHost(event.rid)) {
+        this.continueGame();
+        return;
+      }
+
       const lastActivation = this.lastRequestActionByUser.get(event.rid);
       const isBanned = lastActivation && lastActivation + this.banDuration > Date.now();
       if (this.lobbyState.game.type !== 'question'
