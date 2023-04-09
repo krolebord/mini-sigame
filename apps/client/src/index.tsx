@@ -17,19 +17,19 @@ export function App() {
   return (
     <Router>
       <QueryClientProvider client={queryClient}>
-        <header class="px-2 py-1 flex justify-between border-b border-slate-400">
+        <header class="px-2 py-1 flex justify-between border-b items-center border-slate-400 min-h-[var(--header-height)] max-h-[var(--header-height)]">
           <Link href="/home">SIU</Link>
           <ThemeSelect />
           <Link href="/">{username()}</Link>
         </header>
 
-        <main class="flex mt-4 flex-col items-center justify-center w-full">
-          <Routes>
+        <Routes>
+          <main class="flex flex-1 mt-4 flex-col items-center justify-center w-full">
             <Route path="/" component={NewUserRoute} />
             <Route path="/home" component={HomeRoute} />
-            <Route path="/g/:gameId" component={GameRoute} />
-          </Routes>
-        </main>
+          </main>
+          <Route path="/g/:gameId" component={GameRoute} />
+        </Routes>
 
         <Toaster position="bottom-right" />
       </QueryClientProvider>

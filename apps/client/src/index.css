@@ -5,3 +5,8 @@
 html.dark {
   color-scheme: dark;
 }
+
+:root {
+  --header-height: 2.25rem;
+  --screen-height: 100vh;
+}

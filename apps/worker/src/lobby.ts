@@ -345,7 +345,7 @@ export class MiniSigameLobby extends SingleReplica {
         this.broadcastNotification({
           type: 'success',
           message: `Correct! ${player.user.id} gets +${this.lobbyState.game.price}!`,
-          position: 'top-center'
+          position: 'bottom-right'
         });
 
         this.broadcastPatch();
@@ -356,8 +356,8 @@ export class MiniSigameLobby extends SingleReplica {
 
         this.broadcastNotification({
           type: 'error',
-          message: `=( ${player.user.id} gets -${this.lobbyState.game.price}!`,
-          position: 'top-center'
+          message: `Nope! ${player.user.id} gets -${this.lobbyState.game.price}!`,
+          position: 'bottom-right'
         });
 
         this.broadcastPatch();
