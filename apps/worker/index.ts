@@ -3,7 +3,6 @@ export type {
   GameStateType,
   LobbyState,
   HostState,
-  SigameLobby,
   Message,
   Action,
   ActionType,

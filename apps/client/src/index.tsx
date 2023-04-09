@@ -19,15 +19,15 @@ export function App() {
       <QueryClientProvider client={queryClient}>
         <header class="px-2 py-1 flex justify-between border-b items-center border-slate-400 min-h-[var(--header-height)] max-h-[var(--header-height)]">
           <Link href="/home">SIU</Link>
-          <ThemeSelect />
-          <Link href="/">{username()}</Link>
+          <div class="flex gap-2">
+            <Link href="/">{username()}</Link>
+            <ThemeSelect />
+          </div>
         </header>
 
         <Routes>
-          <main class="flex flex-1 mt-4 flex-col items-center justify-center w-full">
-            <Route path="/" component={NewUserRoute} />
-            <Route path="/home" component={HomeRoute} />
-          </main>
+          <Route path="/" component={NewUserRoute} />
+          <Route path="/home" component={HomeRoute} />
           <Route path="/g/:gameId" component={GameRoute} />
         </Routes>
 

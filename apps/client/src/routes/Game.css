@@ -1,11 +1,22 @@
 .game-grid {
   display: grid;
   grid-template-areas: 
-    "host header"
-    "host game"
-    ". players";
-  grid-template-columns: min-content 1fr;
-  grid-template-rows: min-content 1fr min-content;
+      "header header"
+      "game game"
+      "host players";
+    grid-template-columns: min-content 1fr;
+    grid-template-rows: min-content 1fr min-content;
+}
+
+@media screen and (min-width: 768px) {
+  .game-grid {
+    grid-template-areas: 
+      "host header"
+      "host game"
+      ". players";
+    grid-template-columns: min-content 1fr;
+    grid-template-rows: min-content 1fr min-content;
+  }
 }
 
 .game-grid-header {

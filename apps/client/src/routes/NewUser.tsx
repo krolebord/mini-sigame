@@ -8,7 +8,7 @@ export function NewUserRoute() {
   const [preferences, setPreferences] = usePreferences();
 
   return (
-    <>
+    <main class="flex flex-1 mt-4 flex-col items-center justify-center w-full">
       <h1 class="text-xl font-semibold">Welcome</h1>
       <div class="flex flex-col gap-2 items-center">
         <p>Enter your name</p>
@@ -31,6 +31,6 @@ export function NewUserRoute() {
           </Link>
         </Show>
       </div>
-    </>
+    </main>
   );
 }

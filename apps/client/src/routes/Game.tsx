@@ -2,8 +2,10 @@ import { useParams } from '@solidjs/router';
 import { AnswerNode, QuestionNode } from '@tic/worker/src/manifest';
 import {
   createEffect,
+  createSignal,
   For,
   Match,
+  onCleanup,
   Show,
   Switch,
 } from 'solid-js';
@@ -16,25 +18,41 @@ import {
 } from '../componets/GameProvider';
 import { ProgressLine } from '../componets/TimerLine';
 import { createGameAssetUrl } from '../hooks/create-game-asset-url';
-import { usePreferences } from '../hooks/use-preferences';
+import { usePreferences, useUsername } from '../hooks/use-preferences';
 import './Game.css';
 
 function PlayerAvatar(props: {
   avatar: string;
+  username: string;
   isAnswering?: boolean;
   isAnswered?: boolean;
 }) {
+  const store = useGameStore();
+  const username = useUsername();
+  const isCurrentUser = () => props.username === username();
+
+  const continueGame = () => {
+    if (!isCurrentUser()) return;
+    store.dispatch({
+      type: 'request-action',
+    });
+  };
+
   return (
-    <div
-      class="flex select-none cursor-default items-center justify-center min-w-[6rem] min-h-[6rem] text-6xl rounded-md bg-blue-400"
+    <button
+      disabled={!isCurrentUser()}
+      class="flex select-none cursor-default items-center justify-center min-w-[5rem] min-h-[5rem] text-6xl rounded-md bg-blue-400"
+      onClick={() => continueGame()}
       classList={{
         'border-4': props.isAnswering || props.isAnswered,
         'border-green-400': props.isAnswering,
         'border-slate-600/50': props.isAnswered,
+        'hover:bg-blue-500': isCurrentUser(),
+        'cursor-pointer': isCurrentUser(),
       }}
     >
       {props.avatar}
-    </div>
+    </button>
   );
 }
 
@@ -81,7 +99,7 @@ function ImageNode(props: { filename?: string }) {
   return (
     <Show when={url()} fallback={<p>Image not found</p>}>
       {(url) => (
-        <img class="max-h-[60vh]" src={url()} alt={'SBU COMING FOR YOU.'} />
+        <img class="max-h-[50vh]" src={url()} alt={'SBU COMING FOR YOU.'} />
       )}
     </Show>
   );
@@ -132,7 +150,7 @@ function VideoNode(props: { filename?: string }) {
       {(url) => (
         <video
           ref={video}
-          class="max-h-[60vh]"
+          class="max-h-[50vh]"
           controls
           autoplay
           onvolumechange={(e) =>
@@ -158,10 +176,10 @@ function RoundHeader() {
     <Show
       when={store.lobbyState.game.type === 'question' && store.lobbyState.game}
     >
-      {(gameState) => (<>
-        <p class="text-center mb-2">Category: {gameState().category}</p>
+      {(gameState) => (<div class="flex flex-col justify-center items-center">
+        <p>Category: {gameState().category}</p>
         <ProgressLine progress={gameState().canAnswer ? 1 : 0} />
-      </>)}            
+      </div>)}            
     </Show>
   </div>);
 }
@@ -169,9 +187,9 @@ function RoundHeader() {
 function Host() {
   const store = useGameStore();
   return (
-    <div class="flex flex-col items-center game-grid-host pl-4">
+    <div class="flex flex-col items-center game-grid-host min-w-[7rem] pl-4">
       <p>Host:</p>
-      <PlayerAvatar avatar={store.lobbyState.host.avatar} />
+      <PlayerAvatar avatar={store.lobbyState.host.avatar} username={store.lobbyState.host.id} />
       <p>{store.lobbyState.host.id}</p>
       <HostActions />
     </div>
@@ -204,7 +222,7 @@ function Players() {
     });
   };
 
-  return (<div class="flex flex-col game-grid-players justify-center items-center gap-2">
+  return (<div class="flex flex-col game-grid-players justify-end items-center gap-2">
     <Show
       when={
         store.lobbyState.game.type === 'question' &&
@@ -242,6 +260,7 @@ function Players() {
           <div class="flex flex-col items-center">
             <PlayerAvatar
               avatar={player.user.avatar}
+              username={player.user.id}
               isAnswering={
                 store.lobbyState.game.type === 'question' &&
                 store.lobbyState.game.answeringPlayer === player.user.id
@@ -287,58 +306,55 @@ function ChooseQuestionBoard() {
   const isHost = useIsHost();
 
   return (
-    <>
-      <p>Choose question: </p>
-      <div class="flex flex-row gap-3 justify-center">
-        <div class="flex flex-col gap-3 max-w-[9rem]">
-          <For each={store.lobbyState.round.categories}>
-            {(category) => (
-              <p class="h-12 flex items-center break-all">{category.name}</p>
-            )}
-          </For>
-        </div>
-        <div class="flex flex-col gap-3 categories">
-          <For each={store.lobbyState.round.categories}>
-            {(category, categoryIndex) => (
-              <div class="flex gap-2">
-                <For each={category.questions}>
-                  {(question, questionIndex) => (
-                    <div
-                      class="h-12 w-12 flex justify-center items-center rounded-sm border-blue-700 question"
-                      classList={{ border: !!question }}
-                    >
-                      <Show when={question}>
-                        {(question) => (
-                          <Show
-                            when={isHost()}
-                            fallback={
-                              <span class="">{question().price ?? 0}</span>
-                            }
-                          >
-                            <button
-                              class="h-full w-full flex justify-center items-center hover:bg-blue-100"
-                              onClick={() => {
-                                store.dispatch({
-                                  type: 'host:choose-question',
-                                  category: categoryIndex(),
-                                  question: questionIndex(),
-                                });
-                              }}
-                            >
-                              <p>{question().price ?? 0}</p>
-                            </button>
-                          </Show>
-                        )}
-                      </Show>
-                    </div>
-                  )}
-                </For>
-              </div>
-            )}
-          </For>
-        </div>
+    <div class="flex flex-row gap-3 md:justify-center">
+      <div class="flex flex-col gap-3 max-w-[min-content]">
+        <For each={store.lobbyState.round.categories}>
+          {(category) => (
+            <p class="h-12 flex items-center">{category.name}</p>
+          )}
+        </For>
       </div>
-    </>
+      <div class="flex flex-col gap-3 categories">
+        <For each={store.lobbyState.round.categories}>
+          {(category, categoryIndex) => (
+            <div class="flex gap-2">
+              <For each={category.questions}>
+                {(question, questionIndex) => (
+                  <div
+                    class="h-12 w-12 flex justify-center items-center rounded-sm border-blue-700 question"
+                    classList={{ border: !!question }}
+                  >
+                    <Show when={question}>
+                      {(question) => (
+                        <Show
+                          when={isHost()}
+                          fallback={
+                            <span class="">{question().price ?? 0}</span>
+                          }
+                        >
+                          <button
+                            class="h-full w-full flex justify-center items-center hover:bg-blue-100"
+                            onClick={() => {
+                              store.dispatch({
+                                type: 'host:choose-question',
+                                category: categoryIndex(),
+                                question: questionIndex(),
+                              });
+                            }}
+                          >
+                            <p>{question().price ?? 0}</p>
+                          </button>
+                        </Show>
+                      )}
+                    </Show>
+                  </div>
+                )}
+              </For>
+            </div>
+          )}
+        </For>
+      </div>
+    </div>
   );
 }
 
@@ -404,7 +420,7 @@ function HostActions() {
 
   return (
     <Show when={isHost()}>
-      <div class="flex flex-col items-center gap-1">
+      <div class="flex md:flex-col items-center flex-col-reverse gap-1">
         <Button onClick={continueGame}>Continue (Space key)</Button>
         <Show when={store.lobbyState.game.type === 'choose-question'}>
           <Button onclick={skipRound}>Next round</Button>
@@ -419,7 +435,7 @@ function Game() {
     <main class="h-full w-full gap-2 game-grid py-2 max-h-[calc(var(--screen-height)-var(--header-height))]">
       <Host />
       <RoundHeader />
-      <div class="flex flex-col overflow-auto pr-4 game-grid-game relative">
+      <div class="flex flex-col overflow-auto pl-4 md:pl-0 pr-4 game-grid-game">
         <GameBoard />
       </div>
       <Players />
@@ -427,26 +443,43 @@ function Game() {
   );
 }
 
+function ConnectingDisplay(props: { gameId: string }) {
+  const invalidatePack = useInvalidatePack(() => props.gameId);
+  const [showReload, setShowReload] = createSignal(false);
+
+  createEffect(() => {
+    const intervalId = setInterval(() => {
+      setShowReload(true);
+    }, 10 * 1000);
+
+    onCleanup(() => {
+      clearInterval(intervalId);
+    });
+  });
+
+  return (
+    <main class="h-full flex flex-col justify-center items-center gap-6">
+      <p>Connecting...</p>
+      <Show when={showReload()}>
+        <Button onClick={invalidatePack}>Reload pack</Button>
+      </Show>
+    </main>
+  ) 
+}
+
 export function GameRoute() {
   const params = useParams();
   const gameId = () => params.gameId;
-
-  const invalidatePack = useInvalidatePack(gameId);
 
   return (
     <GameProvider
       gameKey={gameId()}
       loadingPack={
-        <div class="flex justify-center items-center">
+        <main class="h-full flex justify-center items-center">
           <p>Loading pack...</p>
-        </div>
+        </main>
       }
-      connecting={
-        <div class="flex justify-center items-center gap-6">
-          <p>Connecting...</p>
-          <Button onClick={invalidatePack}>Reload pack</Button>
-        </div>
-      }
+      connecting={<ConnectingDisplay gameId={gameId()} />}
     >
       <Game />
     </GameProvider>

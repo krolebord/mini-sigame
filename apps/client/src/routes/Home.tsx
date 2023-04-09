@@ -46,7 +46,7 @@ export function HomeRoute() {
   }
 
   return (
-    <>
+    <main class="flex flex-1 mt-4 flex-col items-center justify-center w-full">
       <h1 class="text-xl font-semibold">SiGame?</h1>
       <div class="flex flex-col gap-2 items-center">
         <p>Hello, {username()}</p>
@@ -61,6 +61,6 @@ export function HomeRoute() {
           Create new game
         </Button>
       </form>
-    </>
+    </main>
   );
 }
