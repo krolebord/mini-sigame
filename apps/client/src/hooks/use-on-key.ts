@@ -1,15 +1,23 @@
-import { Accessor, createEffect, onCleanup } from 'solid-js';
+import { createEffect, onCleanup } from 'solid-js';
 
 export function useOnKey({
   key,
+  preventDefault = false,
   fn,
 }: {
-  key: Accessor<string>;
+  key: string;
+  preventDefault?: boolean;
   fn: () => void;
 }) {
   const handler = (event: KeyboardEvent) => {
-    if (event.key === key()) {
-      fn();
+    if (event.key !== key) {
+      return;
+    }
+
+    fn();
+    
+    if (preventDefault) {
+      event.preventDefault();
     }
   };
 

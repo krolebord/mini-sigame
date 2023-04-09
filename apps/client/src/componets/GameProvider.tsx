@@ -143,7 +143,8 @@ export function GameProvider(props: GameProviderProps) {
     };
 
     useOnKey({
-      key: () => ' ',
+      key: ' ',
+      preventDefault: true,
       fn: () => dispatch({ type: 'request-action' }),
     });
 
