@@ -6,19 +6,40 @@ import { useUsername } from '../hooks/use-preferences';
 import { parsePack } from '../utils/parse-pack';
 import { uploadPack } from '../utils/upload-pack';
 
+async function upload(formData: FormData, username: string) {
+  const parseResult = await parsePack(formData);
+
+  if (!parseResult.success) {
+    toast.error(
+      parseResult.message
+        ? `Invalid game data: ${parseResult.message}`
+        : 'Invalid game data'
+    );
+    return;
+  }
+
+  return await uploadPack({
+    username: username,
+    ...parseResult
+  });
+}
+
 export function HomeRoute() {
   const username = useUsername();
   const navigate = useNavigate();
 
   const packUploadMutation = createMutation({
-    async mutationFn(opts: Parameters<typeof uploadPack>[0]) {
-      const uploadResult = await toast.promise(uploadPack(opts), {
+    async mutationFn(formData: FormData) {
+      const uploadPromise = upload(formData, username());
+      const uploadResult = await toast.promise(uploadPromise, {
         loading: 'Uploading game data',
         success: 'Game data uploaded',
         error: 'Failed to upload game data',
       });
 
-      navigate(`/g/${uploadResult.key}`);
+      if (uploadResult) {
+        navigate(`/g/${uploadResult.key}`);
+      }
     },
   });
 
@@ -26,23 +47,9 @@ export function HomeRoute() {
     e: Event & { currentTarget: HTMLFormElement }
   ) {
     e.preventDefault();
+
     const formData = new FormData(e.currentTarget);
-    const parseResult = await parsePack(formData);
-
-    if (!parseResult.success) {
-      toast.error(
-        parseResult.message
-          ? `Invalid game data: ${parseResult.message}`
-          : 'Invalid game data'
-      );
-      return;
-    }
-
-    packUploadMutation.mutate({
-      username: username(),
-      manifest: parseResult.manifest,
-      packedAssets: parseResult.packedAssets,
-    });
+    packUploadMutation.mutate(formData);
   }
 
   return (

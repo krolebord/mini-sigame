@@ -63,10 +63,6 @@ export async function parsePack(
 
     const packedAssets = await packAssets(assets);
 
-    // const key = normalizeFilename((manifest.rounds[2].themes[4].questions[2].scenario[1] as any).filename);
-    // const blob = assets.get(key);
-    // (document.getElementById('test') as any).src = URL.createObjectURL(blob!);
-
     return {
       success: true,
       packedAssets,
