@@ -1,16 +1,12 @@
 import { useParams } from '@solidjs/router';
 import { AnswerNode, QuestionNode } from '@tic/worker/src/manifest';
 import {
-  Accessor,
   createEffect,
-  createMemo,
   For,
   Match,
-  onCleanup,
   Show,
   Switch,
 } from 'solid-js';
-import toast from 'solid-toast';
 import { Button } from '../componets/Button';
 import {
   GameProvider,
@@ -18,9 +14,9 @@ import {
   useInvalidatePack,
   useIsHost,
 } from '../componets/GameProvider';
-import { ProgressLine, TimerProgressLine } from '../componets/TimerLine';
-import { usePreferences, useUsername } from '../hooks/use-preferences';
-import { normalizeFilename } from '../utils/parse-pack';
+import { ProgressLine } from '../componets/TimerLine';
+import { createGameAssetUrl } from '../hooks/create-game-asset-url';
+import { usePreferences } from '../hooks/use-preferences';
 
 function PlayerAvatar(props: {
   avatar: string;
@@ -76,29 +72,6 @@ function NodeDisplay(props: { node: QuestionNode | AnswerNode }) {
       </Match>
     </Switch>
   );
-}
-
-function createGameAssetUrl(filename: Accessor<string | undefined>) {
-  const store = useGameStore();
-
-  return createMemo(() => {
-    const name = filename();
-    if (!name) {
-      return null;
-    }
-
-    const asset = store.assets.get(normalizeFilename(name));
-
-    if (!asset) {
-      return null;
-    }
-
-    const url = URL.createObjectURL(asset);
-    onCleanup(() => {
-      URL.revokeObjectURL(url);
-    });
-    return url;
-  });
 }
 
 function ImageNode(props: { filename?: string }) {
@@ -196,7 +169,6 @@ function Host() {
 }
 function Players() {
   const store = useGameStore();
-  const username = useUsername();
   const isHost = useIsHost();
 
   const kickPlayer = (id: string) => {
@@ -258,15 +230,77 @@ function Players() {
   );
 }
 
+function ChooseQuestionBoard() {
+  const store = useGameStore();
+  const isHost = useIsHost();
+
+  return (
+    <>
+      <p>Choose question: </p>
+      <div class="flex flex-row gap-3 justify-center">
+        <div class="flex flex-col gap-3 max-w-[9rem]">
+          <For each={store.lobbyState.round.categories}>
+            {(category) => (
+              <p class="h-12 flex items-center break-all">{category.name}</p>
+            )}
+          </For>
+        </div>
+        <div class="flex flex-col gap-3 categories">
+          <For each={store.lobbyState.round.categories}>
+            {(category, categoryIndex) => (
+              <div class="flex gap-2">
+                <For each={category.questions}>
+                  {(question, questionIndex) => (
+                    <div
+                      class="h-12 w-12 flex justify-center items-center rounded-sm border-blue-700 question"
+                      classList={{ border: !!question }}
+                    >
+                      <Show when={question}>
+                        {(question) => (
+                          <Show
+                            when={isHost()}
+                            fallback={
+                              <span class="">{question().price ?? 0}</span>
+                            }
+                          >
+                            <button
+                              class="h-full w-full flex justify-center items-center hover:bg-blue-100"
+                              onClick={() => {
+                                store.dispatch({
+                                  type: 'host:choose-question',
+                                  category: categoryIndex(),
+                                  question: questionIndex(),
+                                });
+                              }}
+                            >
+                              <p>{question().price ?? 0}</p>
+                            </button>
+                          </Show>
+                        )}
+                      </Show>
+                    </div>
+                  )}
+                </For>
+              </div>
+            )}
+          </For>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function QuestionBoard() {
   const store = useGameStore();
   const isHost = useIsHost();
+
   const acceptAnswer = (correct: boolean) => {
     store.dispatch({
       type: 'host:accept-answer',
       correct,
     });
   };
+
   return (
     <Show
       when={
@@ -283,7 +317,7 @@ function QuestionBoard() {
             }
           >
             {(gameState) => (
-              <ProgressLine progress={gameState().canAnswer ? 1 : 0}/>
+              <ProgressLine progress={gameState().canAnswer ? 1 : 0} />
             )}
           </Show>
 
@@ -329,7 +363,6 @@ function QuestionBoard() {
 
 function GameBoard() {
   const store = useGameStore();
-  const isHost = useIsHost();
 
   return (
     <Switch
@@ -338,56 +371,7 @@ function GameBoard() {
       }
     >
       <Match when={store.lobbyState.game.type === 'choose-question'}>
-        <p>Choose question: </p>
-        <div class="flex flex-row gap-3 justify-center">
-          <div class="flex flex-col gap-3 max-w-[9rem]">
-            <For each={store.lobbyState.round.categories}>
-              {(category) => (
-                <p class="h-12 flex items-center break-all">{category.name}</p>
-              )}
-            </For>
-          </div>
-          <div class="flex flex-col gap-3 categories">
-            <For each={store.lobbyState.round.categories}>
-              {(category, categoryIndex) => (
-                <div class="flex gap-2">
-                  <For each={category.questions}>
-                    {(question, questionIndex) => (
-                      <div
-                        class="h-12 w-12 flex justify-center items-center rounded-sm border-blue-700 question"
-                        classList={{ border: !!question }}
-                      >
-                        <Show when={question}>
-                          {(question) => (
-                            <Show
-                              when={isHost()}
-                              fallback={
-                                <span class="">{question().price ?? 0}</span>
-                              }
-                            >
-                              <button
-                                class="h-full w-full flex justify-center items-center hover:bg-blue-100"
-                                onClick={() => {
-                                  store.dispatch({
-                                    type: 'host:choose-question',
-                                    category: categoryIndex(),
-                                    question: questionIndex(),
-                                  });
-                                }}
-                              >
-                                <p>{question().price ?? 0}</p>
-                              </button>
-                            </Show>
-                          )}
-                        </Show>
-                      </div>
-                    )}
-                  </For>
-                </div>
-              )}
-            </For>
-          </div>
-        </div>
+        <ChooseQuestionBoard />
       </Match>
       <Match when={store.lobbyState.game.type.startsWith('question')}>
         <QuestionBoard />
@@ -438,8 +422,6 @@ function HostActions() {
 }
 
 function Game() {
-  const store = useGameStore();
-
   return (
     <>
       <div class="flex flex-row w-full px-3 gap-4">
@@ -469,10 +451,10 @@ export function GameRoute() {
       gameKey={gameId()}
       loadingPack={<p>Loading pack...</p>}
       connecting={
-        <>
+        <div class="flex justify-center items-center gap-6">
           <p>Connecting...</p>
           <Button onClick={invalidatePack}>Reload pack</Button>
-        </>
+        </div>
       }
     >
       <Game />
