@@ -307,10 +307,12 @@ function ChooseQuestionBoard() {
 
   return (
     <div class="flex flex-row gap-3 md:justify-center">
-      <div class="flex flex-col gap-3 max-w-[fit-content]">
+      <div class="flex flex-col gap-3 max-w-[18rem]">
         <For each={store.lobbyState.round.categories}>
           {(category) => (
-            <p class="h-12 flex items-center">{category.name}</p>
+            <p class="h-12 flex items-center">
+              <span class="line-clamp-2">{category.name}</span>
+            </p>
           )}
         </For>
       </div>
