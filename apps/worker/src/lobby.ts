@@ -5,7 +5,7 @@ import { Env } from './env';
 import { handleResponse } from './handlers';
 import { AnswerNode, getPack, QuestionNode, StoredManifest } from './manifest';
 
-type User = {
+export type User = {
   id: string;
   avatar: string;
 };
@@ -45,6 +45,7 @@ export type LobbyState = {
     online: boolean;
     score: number;
   }[];
+  choosingPlayer?: string;
   round: {
     number: number;
     name: string;
@@ -221,7 +222,7 @@ export class MiniSigameLobby extends SingleReplica {
       this.continueGame();
     },
     'host:choose-question': (event, data) => {
-      if (!this.isHost(event.rid) || this.lobbyState.game.type !== 'choose-question') {
+      if (this.lobbyState.game.type !== 'choose-question' || (!this.isHost(event.rid) && !this.isChoosingPlayer(event.rid))) {
         return;
       }
 
@@ -329,6 +330,7 @@ export class MiniSigameLobby extends SingleReplica {
       this.lobbyState.game.answeringPlayer = undefined;
 
       if (data.correct) {
+        this.lobbyState.choosingPlayer = player.user.id;
         player.score += this.lobbyState.game.price;
 
         this.broadcastNotification({
@@ -356,6 +358,10 @@ export class MiniSigameLobby extends SingleReplica {
 
   private isHost(rid: string): boolean {
     return this.manifest.host === rid;
+  }
+
+  private isChoosingPlayer(rid: string): boolean {
+    return this.lobbyState.choosingPlayer === rid;
   }
 
   private continueGame() {
@@ -477,6 +483,10 @@ export class MiniSigameLobby extends SingleReplica {
             avatar: pickRandomAvatar(),
           },
         });
+
+        if (!this.lobbyState.choosingPlayer) {
+          this.lobbyState.choosingPlayer = rid;
+        }
       } else {
         player.online = true;
       }

@@ -2,6 +2,7 @@ import { useParams } from '@solidjs/router';
 import { AnswerNode, QuestionNode } from '@tic/worker/src/manifest';
 import {
   createEffect,
+  createMemo,
   createSignal,
   For,
   Match,
@@ -20,16 +21,30 @@ import { ProgressLine } from '../componets/TimerLine';
 import { createGameAssetUrl } from '../hooks/create-game-asset-url';
 import { usePreferences, useUsername } from '../hooks/use-preferences';
 import './Game.css';
+import type { User } from '@tic/worker';
 
 function PlayerAvatar(props: {
-  avatar: string;
-  username: string;
-  isAnswering?: boolean;
-  isAnswered?: boolean;
+  player: User;
 }) {
   const store = useGameStore();
   const username = useUsername();
-  const isCurrentUser = () => props.username === username();
+  const isCurrentUser = () => props.player.id === username();
+
+  const borderStatus = createMemo((): 'answering' | 'answered' | 'choosing' | undefined => {
+    if (store.lobbyState.game.type === 'question') {
+      if (store.lobbyState.game.answeringPlayer === props.player.id) {
+        return 'answering';
+      }
+
+      if (store.lobbyState.game.alreadyAnswered.includes(props.player.id)) {
+        return 'answered';
+      }
+    }
+
+    if (props.player.id === store.lobbyState.choosingPlayer) {
+      return 'choosing';
+    }
+  });
 
   const continueGame = () => {
     if (!isCurrentUser()) return;
@@ -44,14 +59,15 @@ function PlayerAvatar(props: {
       class="flex select-none cursor-default items-center justify-center min-w-[5rem] min-h-[5rem] text-6xl rounded-md bg-blue-400"
       onClick={() => continueGame()}
       classList={{
-        'border-4': props.isAnswering || props.isAnswered,
-        'border-green-400': props.isAnswering,
-        'border-slate-600/50': props.isAnswered,
+        'border-4': !!borderStatus(),
+        'border-green-400': borderStatus() === 'answering',
+        'border-slate-600/50': borderStatus() === 'answered',
+        'border-blue-600': borderStatus() === 'choosing',
         'hover:bg-blue-500': isCurrentUser(),
         'cursor-pointer': isCurrentUser(),
       }}
     >
-      {props.avatar}
+      {props.player.avatar}
     </button>
   );
 }
@@ -189,7 +205,7 @@ function Host() {
   return (
     <div class="flex flex-col items-center game-grid-host min-w-[7rem] pl-4">
       <p>Host:</p>
-      <PlayerAvatar avatar={store.lobbyState.host.avatar} username={store.lobbyState.host.id} />
+      <PlayerAvatar player={store.lobbyState.host} />
       <p>{store.lobbyState.host.id}</p>
       <HostActions />
     </div>
@@ -258,18 +274,7 @@ function Players() {
       <For each={store.lobbyState.players}>
         {(player) => (
           <div class="flex flex-col items-center">
-            <PlayerAvatar
-              avatar={player.user.avatar}
-              username={player.user.id}
-              isAnswering={
-                store.lobbyState.game.type === 'question' &&
-                store.lobbyState.game.answeringPlayer === player.user.id
-              }
-              isAnswered={
-                store.lobbyState.game.type === 'question' &&
-                store.lobbyState.game.alreadyAnswered.includes(player.user.id)
-              }
-            />
+            <PlayerAvatar player={player.user} />
             <p classList={{ 'text-gray-400': !player.online }}>
               {player.user.id}
             </p>
@@ -304,6 +309,7 @@ function Players() {
 function ChooseQuestionBoard() {
   const store = useGameStore();
   const isHost = useIsHost();
+  const username = useUsername();
 
   return (
     <div class="flex flex-row gap-3 md:justify-center">
@@ -329,13 +335,13 @@ function ChooseQuestionBoard() {
                     <Show when={question}>
                       {(question) => (
                         <Show
-                          when={isHost()}
+                          when={isHost() || username() === store.lobbyState.choosingPlayer}
                           fallback={
                             <span class="">{question().price ?? 0}</span>
                           }
                         >
                           <button
-                            class="h-full w-full flex justify-center items-center hover:bg-blue-100"
+                            class="h-full w-full flex justify-center items-center hover:bg-blue-400"
                             onClick={() => {
                               store.dispatch({
                                 type: 'host:choose-question',
