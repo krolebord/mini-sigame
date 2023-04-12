@@ -207,7 +207,7 @@ function Host() {
       <p>Host:</p>
       <PlayerAvatar player={store.lobbyState.host} />
       <p>{store.lobbyState.host.id}</p>
-      <HostActions />
+      <Sidebar />
     </div>
   );
 }
@@ -238,6 +238,12 @@ function Players() {
     });
   };
 
+  const continueGame = () => {
+    store.dispatch({
+      type: 'host:continue',
+    });
+  };
+
   return (<div class="flex flex-col game-grid-players justify-end items-center gap-2">
     <Show
       when={
@@ -254,22 +260,25 @@ function Players() {
         </p>
       )}
     </Show>
-    <Show
-      when={
-        isHost() &&
-        store.lobbyState.game.type === 'question' &&
-        !!store.lobbyState.game.answeringPlayer
-      }
-    >
-      <div class="flex flex-row gap-4">
+    <div class="flex flex-row gap-4">
+      <Show
+        when={
+          isHost() &&
+          store.lobbyState.game.type === 'question' &&
+          !!store.lobbyState.game.answeringPlayer
+        }
+      >
         <Button variant="default" onclick={() => acceptAnswer(true)}>
           Accept
         </Button>
         <Button variant="destructive" onclick={() => acceptAnswer(false)}>
           Reject
         </Button>
-      </div>
-    </Show>
+      </Show>
+      <Show when={isHost() && (store.lobbyState.game.type === 'question' || store.lobbyState.game.type === 'question:display-answer')}>
+        <Button onClick={continueGame}>Continue (Space key)</Button>
+      </Show>
+    </div>
     <div class="flex gap-4">
       <For each={store.lobbyState.players}>
         {(player) => (
@@ -409,15 +418,9 @@ function GameBoard() {
   );
 }
 
-function HostActions() {
+function Sidebar() {
   const store = useGameStore();
   const isHost = useIsHost();
-
-  const continueGame = () => {
-    store.dispatch({
-      type: 'host:continue',
-    });
-  };
 
   const skipRound = () => {
     store.dispatch({
@@ -426,15 +429,25 @@ function HostActions() {
     });
   };
 
+  const voteSkip = () => {
+    store.dispatch({
+      type: 'vote-skip',
+    });
+  };
+
   return (
-    <Show when={isHost()}>
-      <div class="flex md:flex-col items-center flex-col-reverse gap-1">
-        <Button onClick={continueGame}>Continue (Space key)</Button>
-        <Show when={store.lobbyState.game.type === 'choose-question'}>
-          <Button onclick={skipRound}>Next round</Button>
-        </Show>
-      </div>
-    </Show>
+    <div class="flex flex-col mt-2 gap-2">
+      <Show when={isHost() && store.lobbyState.game.type === 'choose-question'}>
+        <Button onclick={skipRound}>Next round</Button>
+      </Show>
+      <Show when={store.lobbyState.game.type === 'question' && store.lobbyState.game}>
+        {game => (
+          <Button disabled={isHost()} onclick={voteSkip} >
+            Skip {game().votedForSkip.length} / {store.lobbyState.players.length}
+          </Button>
+        )}
+      </Show>
+    </div>
   );
 }
 

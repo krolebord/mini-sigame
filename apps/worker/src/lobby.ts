@@ -28,6 +28,7 @@ export type GameState =
     canAnswer: boolean;
     answeringPlayer?: string;
     alreadyAnswered: string[];
+    votedForSkip: string[];
   }
   | {
     type: 'question:display-answer';
@@ -121,15 +122,18 @@ const actionSchema = z.discriminatedUnion('type', [
     round: z.number(),
   }),
   z.object({
-    type: z.literal('request-answer'),
-  }),
-  z.object({
     type: z.literal('host:accept-answer'),
     correct: z.boolean(),
   }),
   z.object({
     type: z.literal('host:continue'),
-  })
+  }),
+  z.object({
+    type: z.literal('request-answer'),
+  }),
+  z.object({
+    type: z.literal('vote-skip'),
+  }),
 ]);
 
 type FullState = {
@@ -254,6 +258,7 @@ export class MiniSigameLobby extends SingleReplica {
         canAnswer: false,
         alreadyAnswered: [],
         price: selectedQuestion.price,
+        votedForSkip: [],
       };
       this.broadcastPatch();
 
@@ -352,6 +357,18 @@ export class MiniSigameLobby extends SingleReplica {
         });
 
         this.broadcastPatch();
+      }
+    },
+    'vote-skip': (event) => {
+      if (this.isHost(event.rid) || this.lobbyState.game.type !== 'question' || this.lobbyState.game.votedForSkip.includes(event.rid)) {
+        return;
+      }
+
+      this.lobbyState.game.votedForSkip.push(event.rid);
+      this.broadcastPatch();
+
+      if (this.lobbyState.game.votedForSkip.length >= this.lobbyState.players.length) {
+        this.continueGame();
       }
     }
   };

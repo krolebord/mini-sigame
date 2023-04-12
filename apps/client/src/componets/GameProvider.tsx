@@ -19,6 +19,7 @@ import { config } from '../config';
 import { useOnKey } from '../hooks/use-on-key';
 import { useUsername } from '../hooks/use-preferences';
 import { fetchPack, invalidatePackCache } from '../utils/fetch-pack';
+import { Button } from './Button';
 
 export type ExtractState<T extends GameState> = Extract<GameState, { type: T }>;
 export type Dispatch = (action: Action) => void;
@@ -138,7 +139,10 @@ export function GameProvider(props: GameProviderProps) {
     };
 
     const handleClose = () => {
-      toast('Connection closed');
+      toast(<div class='flex flex-col gap-2'>
+        <p>Connection closed</p>
+        <Button onClick={() => window.location.reload()}>Reload</Button>
+      </div>);
       console.log(`[${props.gameKey}] close`);
     };
 
