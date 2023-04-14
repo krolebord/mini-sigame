@@ -18,7 +18,7 @@ export function App() {
     <Router>
       <QueryClientProvider client={queryClient}>
         <header class="px-2 py-1 flex justify-between border-b items-center border-slate-400 min-h-[var(--header-height)] max-h-[var(--header-height)]">
-          <Link href="/home">SIU</Link>
+          <Link href="/home">Who Asked?</Link>
           <div class="flex gap-2">
             <Link href="/">{username()}</Link>
             <ThemeSelect />

@@ -149,7 +149,7 @@ const differ = createDiffer({
 });
 
 export class MiniSigameLobby extends SingleReplica {
-  public maxUsers: number = 8;
+  public maxUsers: number = 12;
 
   private initializedAt: number | undefined = undefined;
 
